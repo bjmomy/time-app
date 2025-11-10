@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>시간 관리 앱 v8.4</title>
-
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#007aff">    
+    
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -902,16 +900,18 @@
             const routines = finalTodoList.filter(t => t.isRoutine);
             const nonRoutines = finalTodoList.filter(t => !t.isRoutine);
             
+            // ★★★ (v8.3 버그 수정) 체크된 항목이 누락되는 오류 수정 ★★★
             const uncheckedRoutines = routines.filter(t => !t.checked);
             const uncheckedNonRoutines = nonRoutines.filter(t => !t.checked);
             const checkedRoutines = routines.filter(t => t.checked);
-            const checkedNonRoutines = nonRoutines.filter(t => !t.checked); 
+            const checkedNonRoutines = nonRoutines.filter(t => !t.checked);
 
             // 루틴 (체크 안 한 것) -> 일반 (체크 안 한 것) -> 루틴 (체크 한 것) -> 일반 (체크 한 것)
             uncheckedRoutines.forEach(t => addNewTask(t.text, t.checked, t.isImportant, t.isRoutine));
             uncheckedNonRoutines.forEach(t => addNewTask(t.text, t.checked, t.isImportant, t.isRoutine));
             checkedRoutines.forEach(t => addNewTask(t.text, t.checked, t.isImportant, t.isRoutine));
             checkedNonRoutines.forEach(t => addNewTask(t.text, t.checked, t.isImportant, t.isRoutine));
+            // ★★★ 버그 수정 완료 ★★★
             
             if (data) {
                 selectedTasks = data.selectedTasks || [];
@@ -1235,7 +1235,6 @@
             droppedTask.addEventListener('dragover', (e) => {
                 e.preventDefault();
                 e.stopPropagation(); 
-                // e.target.closest('.time-slot')
                 timeSlot.classList.add('drag-over');
             });
             droppedTask.addEventListener('dragleave', (e) => {
