@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>시간 관리 앱 v9.2</title>
+    <title>시간 관리 앱 v9.4</title>
     
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     
@@ -22,35 +22,75 @@
         .app-container { display: flex; flex-direction: column; height: 100%; width: 100%; }
         .hidden { display: none !important; }
 
-        /* --- 헤더 --- */
+        /* --- ★ 헤더 수정 (반응형 적용) --- */
         #date-header {
-            flex-shrink: 0; padding: 10px; background-color: #ffffff;
-            border-bottom: 1px solid #e0e0e0; display: flex;
-            justify-content: space-between; align-items: center;
+            flex-shrink: 0; 
+            padding: 8px; 
+            background-color: #ffffff;
+            border-bottom: 1px solid #e0e0e0; 
+            display: flex;
+            flex-wrap: wrap; /* 공간 부족시 줄바꿈 */
+            justify-content: space-between; 
+            align-items: center;
+            gap: 5px; /* 요소 간 간격 */
         }
-        #date-controls-left, #center-controls, #search-controls-right {
+        
+        /* 기본(모바일 세로): 날짜 컨트롤이 윗줄 전체 차지 */
+        #date-controls-left {
+            display: flex;
+            align-items: center;
+            justify-content: center; /* 가운데 정렬 */
+            width: 100%; /* 한 줄 다 차지 */
+            margin-bottom: 5px;
+        }
+
+        /* 나머지 컨트롤들 */
+        #center-controls, #search-controls-right {
             display: flex;
             align-items: center;
         }
+        
+        /* 오른쪽 컨트롤 그룹: 공간 활용을 위해 flex-grow */
+        #search-controls-right {
+            flex-grow: 1;
+            justify-content: flex-end;
+        }
+
+        /* ★ 가로 모드 및 큰 화면 (600px 이상) 설정 */
+        @media (min-width: 600px) {
+            #date-header {
+                flex-wrap: nowrap; /* 한 줄로 표시 */
+            }
+            #date-controls-left {
+                width: auto; /* 내용만큼만 차지 */
+                justify-content: flex-start;
+                margin-bottom: 0;
+            }
+            #center-controls {
+                position: absolute; /* PC화면에서는 중앙 정렬 */
+                left: 50%;
+                transform: translateX(-50%);
+            }
+        }
+
         #date-header button {
             background: none; border: none; font-size: 20px; font-weight: bold;
-            color: #007aff; cursor: pointer; padding: 0 10px;
+            color: #007aff; cursor: pointer; padding: 0 6px; /* 패딩 약간 축소 */
         }
         #current-date {
-            min-width: 120px; text-align: center; font-size: 18px;
+            min-width: 110px; text-align: center; font-size: 18px;
             font-weight: 600; color: #333;
         }
         #calendar-btn, #memo-btn, #today-btn { 
-            font-size: 24px; padding: 0 5px; 
+            font-size: 22px; padding: 0 4px; 
         }
-        #center-controls button { font-size: 24px; padding: 0 8px; }
-        #search-controls-right { justify-content: flex-end; }
-        #playground-btn, #settings-btn { font-size: 24px; padding: 0 8px; }
+        #playground-btn, #settings-btn { font-size: 22px; padding: 0 6px; }
+        
         #search-input {
-            border: 1px solid #ccc; border-radius: 4px; padding: 6px 8px;
-            font-size: 14px; max-width: 100px;
+            border: 1px solid #ccc; border-radius: 4px; padding: 6px;
+            font-size: 14px; max-width: 80px; /* 검색창 너비 조절 */
         }
-        #search-btn { font-size: 22px; padding: 0 8px; }
+        #search-btn { font-size: 20px; padding: 0 6px; }
 
         /* --- 공통 패널 컨테이너 --- */
         .main-container {
@@ -59,7 +99,7 @@
         }
         .left-panel, .right-panel {
             flex: 1; padding: 10px; display: flex;
-            flex-direction: column; min-width: 0;
+            flex-direction: column; min-width: 0; overflow: hidden;
         }
         .left-panel { border-right: 1px solid #e0e0e0; }
         .single-panel-view {
@@ -79,6 +119,7 @@
             border-bottom: 2px solid #eee;
             padding-bottom: 4px;
             margin-bottom: 8px;
+            flex-shrink: 0;
         }
         .h3-wrapper h3 {
             margin-bottom: 0;
@@ -104,19 +145,29 @@
         }
 
         /* --- 계획표: 할 일 섹션 --- */
-        #todo-section { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-        .input-section { display: flex; margin-bottom: 10px; flex-shrink: 0; gap: 5px; }
+        #todo-section { 
+            flex: 1; display: flex; flex-direction: column; 
+            min-height: 0; margin-bottom: 10px; 
+        }
+        .input-section { 
+            display: flex; margin-bottom: 10px; flex-shrink: 0; gap: 5px; 
+        }
         .input-section input[type="text"],
         .input-section input[type="number"] {
             flex-grow: 1; border: 1px solid #ccc; border-radius: 4px;
             padding: 8px 10px; font-size: 14px;
+            min-width: 0;
         }
         .input-section button {
             background-color: #007aff; color: white; border: none; border-radius: 4px;
             padding: 8px 12px; margin-left: 8px; cursor: pointer;
-            font-size: 16px; font-weight: bold; flex-shrink: 0;
+            font-size: 16px; font-weight: bold;
+            flex-shrink: 0;
         }
-        #todo-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
+        #todo-list { 
+            list-style: none; padding: 0; margin: 0; 
+            overflow-y: auto; flex-grow: 1; border-bottom: 1px solid #eee; 
+        }
         .task-item {
             padding: 8px 10px;
             border: none;
@@ -131,7 +182,7 @@
         .routine-item { background-color: #fdfdfd; }
         .routine-item span::before { content: "📌 "; font-size: 12px; opacity: 0.6; }
         
-        .task-item span { flex-grow: 1; cursor: pointer; margin-right: 5px; outline: none; }
+        .task-item span { flex-grow: 1; cursor: pointer; margin-right: 5px; outline: none; word-break: break-all; }
         input[type="checkbox"] { margin-right: 8px; flex-shrink: 0; accent-color: #007aff; }
         .task-item.completed { opacity: 0.5; }
         .task-item.completed span { text-decoration: line-through; color: #888; }
@@ -145,8 +196,8 @@
 
         /* 계획표: '중요한 5가지' */
         #important-section {
-            margin-top: 10px; padding-top: 10px; border-top: 1px dashed #ccc;
-            flex-shrink: 0; overflow-y: auto; max-height: 200px;
+            padding-top: 10px; border-top: 2px dashed #ccc;
+            flex-shrink: 0; overflow-y: auto; max-height: 30%;
         }
         #important-list { min-height: 40px; }
         .draggable-task {
@@ -290,27 +341,8 @@
             word-wrap: break-word;
         }
 
-        /* --- ★ 몸무게 기록 (반응형 입력창 수정) --- */
+        /* --- 몸무게 기록 --- */
         #weight-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
-        
-        /* 입력 섹션 반응형 처리 */
-        #weight-input-section {
-            display: flex;
-            flex-wrap: wrap; /* 좁은 화면에서 줄바꿈 */
-            gap: 8px;
-            margin-bottom: 10px;
-            align-items: stretch;
-        }
-        #new-weight-input {
-            flex: 1 1 120px; /* 최소 120px, 여유 공간 있으면 늘어남 */
-        }
-        #new-alcohol-input {
-            flex: 1 1 120px;
-        }
-        #add-weight-btn {
-            flex: 0 0 50px; /* 버튼 크기 고정 */
-        }
-
         .weight-header {
             display: flex; align-items: center; padding: 8px 5px;
             background-color: #f0f0f0; font-weight: 600; color: #333;
@@ -655,7 +687,10 @@
             }
             if (viewToShow === 'graph-container') graphBtn.style.color = '#FF9500';
             
-            applyRoutineBtn.style.display = (viewToShow === 'plan-container') ? 'block' : 'none';
+            // 루틴 버튼 표시 제어
+            const isToday = (getDateKey(currentDate) === getDateKey(new Date()));
+            // applyRoutineBtn.style.display = (viewToShow === 'plan-container' && isToday) ? 'block' : 'none'; // v8.2 방식 (오늘만)
+            applyRoutineBtn.style.display = (viewToShow === 'plan-container') ? 'block' : 'none'; // v8.3 방식 (항상)
         }
         memoBtn.addEventListener('click', () => {
             if (memoContainer.classList.contains('hidden')) showView('memo-container');
@@ -812,7 +847,7 @@
             timeline.querySelectorAll('.time-slot').forEach(slot => {
                 const time = slot.dataset.time;
                 const tasks = Array.from(slot.querySelectorAll('.dropped-task')).map(task => ({
-                    text: task.querySelector('span').textContent, // ★ 2. span 내부 텍스트만 저장
+                    text: task.childNodes[0].nodeValue,
                     isImportant: task.classList.contains('is-important')
                 }));
                 if (tasks.length > 0) timelineTasks[time] = tasks;
@@ -844,7 +879,6 @@
                 finalTodoList = data.todos || [];
             }
 
-            // 저장된 순서 그대로 복원
             finalTodoList.forEach(t => {
                 addNewTask(t.text, t.checked, t.isImportant, t.isRoutine);
             });
@@ -856,9 +890,9 @@
                         const timeSlot = timeline.querySelector(`[data-time="${time}"]`);
                         if (timeSlot) {
                             tasks.forEach(taskData => {
-                                // 루틴 여부는 목록에서 확인하지 않고, 저장된 데이터가 없으면 false (호환성)
-                                // 현재 로직상 목록에 있어야 드래그 가능하므로 큰 문제 없음.
-                                createDroppedTaskElement(timeSlot, taskData.text, taskData.isImportant, false); 
+                                const text = taskData.text;
+                                const isRoutine = finalTodoList.some(t => t.text === text && t.isRoutine);
+                                createDroppedTaskElement(timeSlot, text, taskData.isImportant, isRoutine); 
                             });
                         }
                     }
@@ -883,7 +917,6 @@
             }
         }
         
-        // ★ 2. (중복 제거 함수) 앱 시작 시 1회 실행
         function cleanupDuplicates() {
              for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
@@ -904,7 +937,6 @@
                             }
                         }
                     } catch (e) {
-                        // JSON 파싱 에러 무시
                     }
                 }
             }
@@ -1075,7 +1107,6 @@
             checkbox.type = 'checkbox';
             const taskSpan = document.createElement('span');
             taskSpan.textContent = taskText;
-            // ★ 3. 수정 기능 (contentEditable)
             taskSpan.contentEditable = "true";
             taskSpan.addEventListener('blur', () => {
                 savePlanData();
@@ -1093,7 +1124,6 @@
             taskItem.appendChild(taskSpan);
             taskItem.appendChild(deleteBtn);
             
-            // ★ 1. 루틴도 드래그 가능
             taskItem.draggable = true;
             taskItem.addEventListener('dragstart', (e) => {
                 draggedTaskItem = taskItem;
@@ -1182,10 +1212,9 @@
             droppedTask.classList.toggle('is-important', isImportant);
             droppedTask.classList.toggle('is-general', !isImportant);
             
-            // ★ 2. (수정) 텍스트를 별도의 span으로 감쌈 (삭제 버튼과 분리)
             const textSpan = document.createElement('span');
             textSpan.textContent = text;
-            textSpan.style.marginRight = '15px'; // 삭제 버튼 공간 확보
+            textSpan.style.marginRight = '15px'; 
             droppedTask.appendChild(textSpan);
 
             droppedTask.draggable = true;
@@ -1210,7 +1239,6 @@
                 timeSlot.classList.remove('drag-over');
             });
             
-            // ★ 1. 시간표 항목 삭제 버튼 (모두 표시)
             const deleteBtn = document.createElement('button');
             deleteBtn.classList.add('timeline-delete-btn');
             deleteBtn.innerHTML = '&times;';
@@ -1218,7 +1246,6 @@
             
             deleteBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                // ★ 2. (수정) 시간표 삭제는 리스트와 동기화
                 deleteTaskGlobally(text);
             });
 
@@ -1244,7 +1271,6 @@
                 targetSlot.classList.remove('drag-over');
                 if (!draggedTaskItem) return;
 
-                // ★ 2. (수정) 텍스트 추출 방식 변경 (span 내부 텍스트 또는 직접 텍스트)
                 let taskText = draggedTaskItem.textContent.replace('×', '').trim();
                 if (draggedTaskItem.querySelector('span')) {
                      taskText = draggedTaskItem.querySelector('span').textContent;
@@ -1270,9 +1296,6 @@
                     if (originalTaskItem) {
                         isImportant = originalTaskItem.classList.contains('is-important');
                         isRoutine = originalTaskItem.classList.contains('routine-item');
-                        
-                        // 복사이므로 원본 변경 없음
-                        
                     } else if (draggedTaskItem.classList.contains('draggable-task')) {
                         isImportant = true;
                     }
@@ -1289,7 +1312,6 @@
             });
         }
 
-        // --- 몸무게 기록 ---
         function saveWeightData() {
             weightData.sort((a, b) => new Date(b.date) - new Date(a.date));
             localStorage.setItem(WEIGHT_KEY, JSON.stringify(weightData));
@@ -1330,7 +1352,6 @@
                     deleteWeightEntry(entry.date);
                 });
                 
-                // Layout specific container for delete button if needed, or just append
                 const btnContainer = document.createElement('span');
                 btnContainer.className = 'w-del';
                 btnContainer.appendChild(deleteBtn);
@@ -1359,6 +1380,7 @@
             newWeightInput.value = '';
             newAlcoholInput.value = '';
             newWeightInput.placeholder = `${dateKey} 몸무게 (kg)`;
+            alert("저장되었습니다."); 
         }
         function deleteWeightEntry(dateKey) {
             weightData = weightData.filter(e => e.date !== dateKey);
@@ -1416,7 +1438,6 @@
             reader.readAsText(file);
         }
 
-        // --- 그래프(Graph) 기능 ---
         function renderWeightChart() {
             if (currentChartInstance) {
                 currentChartInstance.destroy();
@@ -1498,7 +1519,6 @@
             });
         }
 
-        // --- 달력 초기화 ---
         function initializeCalendar() {
             if (typeof flatpickr === 'undefined') {
                 console.error("Flatpickr 라이브러리가 로드되지 않았습니다.");
@@ -1520,11 +1540,8 @@
             });
         }
 
-        // --- 앱 초기화 ---
         function initializeApp() {
-            // ★ 2. 앱 시작 시 데이터 청소
             cleanupDuplicates();
-            
             createTimeline();
             updateDateDisplay();
             initializeCalendar();
