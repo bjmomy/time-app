@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>시간 관리 앱 v8.4</title>
+    <title>시간 관리 앱 v9.0</title>
     
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     
@@ -107,7 +107,7 @@
 
         /* --- 계획표: 할 일 섹션 --- */
         #todo-section { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-        .input-section { display: flex; margin-bottom: 10px; flex-shrink: 0; }
+        .input-section { display: flex; margin-bottom: 10px; flex-shrink: 0; gap: 5px; } /* gap 추가 */
         .input-section input[type="text"],
         .input-section input[type="number"] {
             flex-grow: 1; border: 1px solid #ccc; border-radius: 4px;
@@ -115,8 +115,9 @@
         }
         .input-section button {
             background-color: #007aff; color: white; border: none; border-radius: 4px;
-            padding: 8px 12px; margin-left: 8px; cursor: pointer;
+            padding: 8px 12px; cursor: pointer;
             font-size: 16px; font-weight: bold;
+            flex-shrink: 0;
         }
         #todo-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
         .task-item {
@@ -139,7 +140,8 @@
             opacity: 0.6;
         }
         
-        .task-item span { flex-grow: 1; cursor: pointer; margin-right: 5px; }
+        /* 수정 가능하도록 outline 제거 */
+        .task-item span { flex-grow: 1; cursor: pointer; margin-right: 5px; outline: none; }
         input[type="checkbox"] { margin-right: 8px; flex-shrink: 0; accent-color: #007aff; }
         .task-item.completed { opacity: 0.5; }
         .task-item.completed span { text-decoration: line-through; color: #888; }
@@ -175,14 +177,18 @@
         #timeline-wrapper { flex-grow: 1; overflow-y: auto; }
         #timeline { position: relative; }
         .time-slot {
-            height: 45px;
+            min-height: 45px;
+            height: auto;
             border-bottom: 1px solid #e0e0e0;
             position: relative;
             padding-left: 40px; 
             box-sizing: border-box;
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-items: flex-start;
             padding-top: 18px;
+            padding-bottom: 4px;
         }
         .time-label {
             position: absolute;
@@ -195,45 +201,47 @@
         .time-slot.drag-over { background-color: #e0f7fa; }
         
         .dropped-task {
-            position: relative;
-            padding: 4px 18px 4px 0;
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 5px;
             font-size: 12px;
             margin-top: 2px;
+            margin-right: 4px;
             font-weight: 500;
             cursor: grab;
-            background-color: transparent;
-            border: none;
+            background-color: #E3F2FD;
+            border: 1px solid #BBDEFB;
+            border-radius: 4px;
             line-height: 1.2;
         }
         .dropped-task:active { cursor: grabbing; }
         .dropped-task.is-important { 
             color: #d32f2f;
+            background-color: #FFEBEE;
+            border-color: #FFCDD2;
         }
         .dropped-task.is-general { 
             color: #333;
+            background-color: #E3F2FD;
+            border-color: #BBDEFB;
         }
         
-        /* ★ 1. 드래그 오류 수정 ★ */
         .timeline-delete-btn {
-            position: absolute;
-            top: 50%;
-            right: 0;
-            transform: translateY(-50%);
             background: none;
             border: none;
             color: #aaa;
-            font-size: 20px;
+            font-size: 16px;
             font-weight: bold;
             line-height: 1;
             cursor: pointer;
-            padding: 0 5px;
+            padding: 0 0 0 5px;
             opacity: 0;
             transition: opacity 0.2s;
-            pointer-events: none; /* ★ 수정: 평소엔 이벤트 비활성화 */
+            pointer-events: none;
         }
         .dropped-task:hover .timeline-delete-btn {
             opacity: 1;
-            pointer-events: auto; /* ★ 수정: 호버 시 이벤트 활성화 */
+            pointer-events: auto;
         }
         .timeline-delete-btn:hover {
             color: #ff3b30;
@@ -330,6 +338,13 @@
             box-sizing: border-box;
         }
         #import-weight-label:hover { opacity: 0.8; }
+        /* 음주량 스타일 */
+        .weight-alcohol {
+            font-size: 13px;
+            color: #ff3b30;
+            margin-left: 10px;
+            font-weight: bold;
+        }
 
         /* --- 그래프 --- */
         #graph-chart-wrapper {
@@ -526,6 +541,7 @@
             <h3>몸무게 기록</h3>
             <div class="input-section">
                 <input type="number" id="new-weight-input" placeholder="오늘 몸무게 (kg)" step="0.1">
+                <input type="text" id="new-alcohol-input" placeholder="음주량" style="flex-grow:0.5;">
                 <button id="add-weight-btn">+</button>
             </div>
             <div class="input-section" style="margin-top: 5px;">
@@ -627,6 +643,7 @@
         const graphBtn = document.getElementById('graph-btn');
         const weightContainer = document.getElementById('weight-container');
         const newWeightInput = document.getElementById('new-weight-input');
+        const newAlcoholInput = document.getElementById('new-alcohol-input'); // ★ 음주량 입력
         const addWeightBtn = document.getElementById('add-weight-btn');
         const weightList = document.getElementById('weight-list');
         const graphContainer = document.getElementById('graph-container');
@@ -685,7 +702,6 @@
             }
             if (viewToShow === 'graph-container') graphBtn.style.color = '#FF9500';
             
-            // ★ 1. 루틴 적용 버튼 표시 (항상)
             applyRoutineBtn.style.display = (viewToShow === 'plan-container') ? 'block' : 'none';
         }
         memoBtn.addEventListener('click', () => {
@@ -711,7 +727,7 @@
             showView('graph-container');
         });
         
-        // --- ★ 1. 설정/데이터 관리/루틴 기능 (수정) ---
+        // --- 기본 기능 ---
         todayBtn.addEventListener('click', () => changeDate(new Date()));
         settingsBtn.addEventListener('click', () => settingsModal.classList.remove('hidden'));
         closeSettingsModalBtn.addEventListener('click', () => settingsModal.classList.add('hidden'));
@@ -724,60 +740,45 @@
         
         saveRoutineBtn.addEventListener('click', () => {
             const newRoutines = routineInput.value.split('\n').map(r => r.trim()).filter(r => r.length > 0);
-            
             localStorage.setItem(ROUTINE_KEY, JSON.stringify(newRoutines));
-            
             routineModal.classList.add('hidden');
             settingsModal.classList.add('hidden');
-            
             alert("루틴 템플릿이 저장되었습니다. '머릿속 할 일'의 🔄 버튼으로 적용/삭제하세요.");
         });
         
-        // ★ 1. 루틴 적용 버튼 (토글) ★
         applyRoutineBtn.addEventListener('click', () => {
             const currentRoutines = JSON.parse(localStorage.getItem(ROUTINE_KEY) || '[]');
             const routineItemsInList = todoList.querySelectorAll('.routine-item');
 
             if (routineItemsInList.length > 0) {
-                // --- 1. 루틴 삭제 (Toggle Off) ---
                 if (!confirm("현재 날짜의 루틴을 목록에서 삭제하시겠습니까?")) return;
-                
                 routineItemsInList.forEach(item => {
                     const taskText = item.querySelector('span').textContent;
-                    // 중요 목록에서도 제거
                     selectedTasks = selectedTasks.filter(task => task !== taskText);
-                    // 할 일 목록에서 제거
                     item.remove();
                 });
                 updateImportantList();
-
             } else {
-                // --- 2. 루틴 적용 (Toggle On) ---
                 if (currentRoutines.length === 0) {
                     alert("설정(⚙️)에서 '매일 루틴'을 먼저 등록해주세요.");
                     return;
                 }
-                
                 const existingTasks = new Set(
                     Array.from(todoList.children).map(item => item.querySelector('span').textContent)
                 );
-                
                 let addedCount = 0;
-                // ★ 1. 순서 보장을 위해 역순(prepend)으로 추가
                 currentRoutines.slice().reverse().forEach(routineText => {
                     if (!existingTasks.has(routineText)) {
-                        // (text, checked, important, isRoutine, isNewEntry=true)
                         addNewTask(routineText, false, false, true, true); 
                         addedCount++;
                     }
                 });
-                
                 if (addedCount === 0) {
                     alert("모든 루틴이 이미 목록에 있습니다.");
                 }
             }
-            savePlanData(); // ★ 3. 적용/삭제 시 즉시 저장
-            checkRoutineBtnState(); // 버튼 상태 갱신
+            savePlanData(); 
+            checkRoutineBtnState(); 
         });
 
         settingsBackupBtn.addEventListener('click', () => {
@@ -838,7 +839,6 @@
         });
 
 
-        // --- ★ 1. 저장/불러오기 (루틴 로직 수정) ---
         function getDateKey(date) {
             const year = date.getFullYear();
             const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -867,8 +867,6 @@
             const memoText = memoTextarea.value;
             const data = { todos, timelineTasks, selectedTasks, memoText };
             
-            // ★ 1. 루틴도 날짜 데이터에 그대로 저장 (과거/미래 필터링 삭제)
-
             if (data.todos.length === 0 && Object.keys(timelineTasks).length === 0 && memoText.trim() === '') {
                 localStorage.removeItem(key);
             } else {
@@ -878,7 +876,6 @@
             if (calendarInstance) { calendarInstance.redraw(); }
         }
         
-        // ★ 1. 루틴 로직 (수동 적용) ★
         function loadPlanData() {
             const key = getStorageKey(currentDate);
             const data = JSON.parse(localStorage.getItem(key));
@@ -891,27 +888,13 @@
             let finalTodoList = [];
             
             if (data) {
-                // ★ 1. 저장된 'todos'를 그대로 로드 (루틴/일반 포함)
                 finalTodoList = data.todos || [];
             }
-            // ★ 1. 데이터가 없으면 finalTodoList = []
 
-            // 렌더링 (순서 보장)
-            const routines = finalTodoList.filter(t => t.isRoutine);
-            const nonRoutines = finalTodoList.filter(t => !t.isRoutine);
-            
-            // ★★★ (v8.3 버그 수정) 체크된 항목이 누락되는 오류 수정 ★★★
-            const uncheckedRoutines = routines.filter(t => !t.checked);
-            const uncheckedNonRoutines = nonRoutines.filter(t => !t.checked);
-            const checkedRoutines = routines.filter(t => t.checked);
-            const checkedNonRoutines = nonRoutines.filter(t => !t.checked);
-
-            // 루틴 (체크 안 한 것) -> 일반 (체크 안 한 것) -> 루틴 (체크 한 것) -> 일반 (체크 한 것)
-            uncheckedRoutines.forEach(t => addNewTask(t.text, t.checked, t.isImportant, t.isRoutine));
-            uncheckedNonRoutines.forEach(t => addNewTask(t.text, t.checked, t.isImportant, t.isRoutine));
-            checkedRoutines.forEach(t => addNewTask(t.text, t.checked, t.isImportant, t.isRoutine));
-            checkedNonRoutines.forEach(t => addNewTask(t.text, t.checked, t.isImportant, t.isRoutine));
-            // ★★★ 버그 수정 완료 ★★★
+            // ★ 수정된 로직: 저장된 순서 그대로 복원 (중복 방지, 순서 유지)
+            finalTodoList.forEach(t => {
+                addNewTask(t.text, t.checked, t.isImportant, t.isRoutine);
+            });
             
             if (data) {
                 selectedTasks = data.selectedTasks || [];
@@ -920,10 +903,9 @@
                         const timeSlot = timeline.querySelector(`[data-time="${time}"]`);
                         if (timeSlot) {
                             tasks.forEach(taskData => {
-                                // ★ 1. 루틴 여부 확인 (과거 데이터 호환)
-                                const text = taskData.text;
-                                const isRoutine = routines.some(r => r.text === text);
-                                createDroppedTaskElement(timeSlot, text, taskData.isImportant, isRoutine);
+                                // 루틴 여부는 목록에서 확인하지 않고, 저장된 데이터가 없으면 false (호환성)
+                                // 현재 로직상 목록에 있어야 드래그 가능하므로 큰 문제 없음.
+                                createDroppedTaskElement(timeSlot, taskData.text, taskData.isImportant, false); 
                             });
                         }
                     }
@@ -934,25 +916,22 @@
             }
             
             updateImportantList();
-            checkRoutineBtnState(); // ★ 1. 뷰 로드 시 버튼 상태 갱신
+            checkRoutineBtnState();
         }
         
-        // ★ 1. 루틴 버튼 상태 갱신
         function checkRoutineBtnState() {
             const routineItemsInList = todoList.querySelectorAll('.routine-item');
             if (routineItemsInList.length > 0) {
-                applyRoutineBtn.classList.add('active'); // 주황색 (CSS .active)
+                applyRoutineBtn.classList.add('active'); 
                 applyRoutineBtn.title = "매일 루틴 삭제";
             } else {
-                applyRoutineBtn.classList.remove('active'); // 파란색 (기본)
+                applyRoutineBtn.classList.remove('active');
                 applyRoutineBtn.title = "매일 루틴 적용";
             }
         }
 
-        // --- 메모 기능 ---
         memoTextarea.addEventListener('input', savePlanData);
 
-        // --- 검색 기능 ---
         searchBtn.addEventListener('click', performSearch);
         searchInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') performSearch(); });
         closeSearchModalBtn.addEventListener('click', () => { searchResultsModal.classList.add('hidden'); });
@@ -999,7 +978,6 @@
             searchResultsModal.classList.remove('hidden');
         }
 
-        // --- 날짜 변경 로직 ---
         function formatDate(date) {
             const year = date.getFullYear();
             const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -1045,7 +1023,6 @@
             changeDate(newDate);
         });
 
-        // --- 타임라인 생성 ---
         function createTimeline() {
             timeline.innerHTML = ''; 
             for (let hour = 6; hour <= 22; hour++) {
@@ -1061,13 +1038,11 @@
             }
         }
         
-        // --- ★ 1. 양방향 삭제 헬퍼 ---
         function deleteTaskGlobally(taskText) {
             const originalTaskItem = Array.from(todoList.children).find(
                 item => item.querySelector('span').textContent === taskText
             );
             
-            // ★ 1. 루틴은 삭제 불가 (버튼으로만)
             if (originalTaskItem && originalTaskItem.classList.contains('routine-item')) {
                 alert("매일 루틴은 '설정 > 매일 루틴 설정'에서 수정하거나, 🔄 버튼으로 현재 날짜에서만 삭제할 수 있습니다.");
                 return;
@@ -1089,15 +1064,13 @@
             savePlanData();
         }
 
-        // --- ★ 1. 일일 계획표: 할 일 추가 (수정) ---
-        addTaskBtn.addEventListener('click', () => addNewTask(null, false, false, false, true)); // isNewEntry=true
+        addTaskBtn.addEventListener('click', () => addNewTask(null, false, false, false, true)); 
         newTaskInput.addEventListener('keypress', function(e) { 
-            if (e.key === 'Enter') addNewTask(null, false, false, false, true); // isNewEntry=true
+            if (e.key === 'Enter') addNewTask(null, false, false, false, true); 
         });
         
         function addNewTask(taskText = null, isChecked = false, isImportant = false, isRoutine = false, isNewEntry = false) {
             if (taskText === null) {
-                // isNewEntry = true; // (파라미터로 받음)
                 taskText = newTaskInput.value.trim();
                 if (taskText === '') return;
                 
@@ -1118,6 +1091,16 @@
             checkbox.type = 'checkbox';
             const taskSpan = document.createElement('span');
             taskSpan.textContent = taskText;
+            // ★ 3. 수정 기능 (contentEditable)
+            taskSpan.contentEditable = "true";
+            taskSpan.addEventListener('blur', () => {
+                // 수정 완료 시 저장 (기존 텍스트로 항목 찾기가 어려우므로 전체 저장)
+                savePlanData();
+            });
+            taskSpan.addEventListener('keypress', (e) => {
+                 if (e.key === 'Enter') { e.preventDefault(); taskSpan.blur(); }
+            });
+
             const deleteBtn = document.createElement('button');
             deleteBtn.classList.add('delete-btn');
             deleteBtn.innerHTML = '&times;';
@@ -1127,7 +1110,7 @@
             taskItem.appendChild(taskSpan);
             taskItem.appendChild(deleteBtn);
             
-            // ★ 1. 루틴도 드래그/클릭 가능하도록 수정
+            // ★ 1. 루틴도 드래그 가능
             taskItem.draggable = true;
             taskItem.addEventListener('dragstart', (e) => {
                 draggedTaskItem = taskItem;
@@ -1141,11 +1124,10 @@
             });
             taskSpan.addEventListener('click', () => {
                 toggleTaskSelection(taskItem, taskText);
-                savePlanData();
             });
 
             if (isRoutine) {
-                deleteBtn.style.display = 'none'; // 루틴은 삭제 버튼 숨김
+                deleteBtn.style.display = 'none'; 
             } else {
                 deleteBtn.addEventListener('click', () => {
                     deleteTaskGlobally(taskText);
@@ -1172,7 +1154,6 @@
             if (isNewEntry) { savePlanData(); }
         }
 
-        // --- 일일 계획표: '중요한 5가지' ---
         function toggleTaskSelection(taskItem, taskText) {
             const isSelected = taskItem.classList.contains('selected');
             if (isSelected) {
@@ -1210,7 +1191,6 @@
             });
         }
 
-        // --- ★ 1. 드래그 앤 드롭 (루틴 드래그 허용) ---
         function createDroppedTaskElement(timeSlot, text, isImportant, isRoutine) {
             const droppedTask = document.createElement('div');
             droppedTask.classList.add('dropped-task');
@@ -1231,7 +1211,6 @@
                 draggedTaskItem = null;
             });
             
-            // ★ 1. (BUGFIX) 드래그 오버/리브 이벤트 추가
             droppedTask.addEventListener('dragover', (e) => {
                 e.preventDefault();
                 e.stopPropagation(); 
@@ -1242,20 +1221,18 @@
                 timeSlot.classList.remove('drag-over');
             });
             
-            // ★ 1. 루틴이 아니면 삭제 버튼 추가
-            if (!isRoutine) {
-                const deleteBtn = document.createElement('button');
-                deleteBtn.classList.add('timeline-delete-btn');
-                deleteBtn.innerHTML = '&times;';
-                deleteBtn.setAttribute('aria-label', '삭제');
-                
-                deleteBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    deleteTaskGlobally(text);
-                });
-    
-                droppedTask.appendChild(deleteBtn);
-            }
+            // ★ 1. 시간표 항목 삭제 버튼 (모두 표시)
+            const deleteBtn = document.createElement('button');
+            deleteBtn.classList.add('timeline-delete-btn');
+            deleteBtn.innerHTML = '&times;';
+            deleteBtn.setAttribute('aria-label', '삭제');
+            
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                deleteTaskGlobally(text);
+            });
+
+            droppedTask.appendChild(deleteBtn);
             timeSlot.appendChild(droppedTask);
         }
         function addDropListeners(timeSlot) {
@@ -1278,8 +1255,6 @@
                 if (!draggedTaskItem) return;
 
                 const taskText = draggedTaskItem.textContent.replace('×', '').trim();
-                
-                // (루틴 드래그는 이미 task-item 레벨에서 활성화됨)
 
                 if (draggedTaskItem.classList.contains('dropped-task')) {
                     draggedTaskItem.style.opacity = '1';
@@ -1306,26 +1281,25 @@
                         const checkbox = originalTaskItem.querySelector('input[type="checkbox"]');
                         if (checkbox) checkbox.checked = true;
                         
-                        if (!isRoutine) {
-                            originalTaskItem.draggable = false;
-                            originalTaskItem.querySelector('span').style.pointerEvents = 'none';
-                            originalTaskItem.style.opacity = '0.5';
-                        }
+                        // ★ 1. 복사이므로 원본 비활성화 로직 제거
                     } else if (draggedTaskItem.classList.contains('draggable-task')) {
                         isImportant = true;
                     }
 
                     createDroppedTaskElement(targetSlot, taskText, isImportant, isRoutine);
-                    selectedTasks = selectedTasks.filter(task => task !== taskText);
-                    updateImportantList();
+                    
+                    // ★ 1. '중요한 5가지'에서 드래그 시 목록에서 제거
+                    if (draggedTaskItem.classList.contains('draggable-task')) {
+                        selectedTasks = selectedTasks.filter(task => task !== taskText);
+                        updateImportantList();
+                    }
                 }
                 draggedTaskItem = null;
                 savePlanData();
             });
         }
 
-        // --- 놀이터(Playground) 기능 ---
-        // (v6.3 코드와 동일)
+        // --- 놀이터, 몸무게 등 기존 기능 유지 ---
         function savePlaygroundData() {
             if (selectedGoalId) {
                 const goal = playgroundData.goals.find(g => g.id === selectedGoalId);
@@ -1543,7 +1517,6 @@
             });
         });
 
-        // --- 몸무게(Weight) 기능 ---
         function saveWeightData() {
             weightData.sort((a, b) => new Date(b.date) - new Date(a.date));
             localStorage.setItem(WEIGHT_KEY, JSON.stringify(weightData));
@@ -1567,8 +1540,12 @@
                 weightSpan.textContent = `${entry.weight} kg`;
                 weightSpan.style.fontWeight = "600";
                 weightSpan.style.color = "#007aff";
+                const alcoholSpan = document.createElement('span');
+                alcoholSpan.classList.add('weight-alcohol');
+                if (entry.alcohol) alcoholSpan.textContent = `(${entry.alcohol})`;
                 textWrapper.appendChild(dateSpan);
                 textWrapper.appendChild(weightSpan);
+                textWrapper.appendChild(alcoholSpan);
                 const deleteBtn = document.createElement('button');
                 deleteBtn.classList.add('delete-btn');
                 deleteBtn.innerHTML = '&times;';
@@ -1587,8 +1564,9 @@
                 alert("올바른 몸무게를 입력하세요.");
                 return;
             }
+            const alcohol = newAlcoholInput.value.trim();
             const dateKey = getDateKey(currentDate);
-            const newEntry = { date: dateKey, weight: weight };
+            const newEntry = { date: dateKey, weight: weight, alcohol: alcohol };
             const existingIndex = weightData.findIndex(e => e.date === dateKey);
             if (existingIndex > -1) {
                 weightData[existingIndex] = newEntry;
@@ -1598,6 +1576,7 @@
             saveWeightData();
             renderWeightList();
             newWeightInput.value = '';
+            newAlcoholInput.value = '';
             newWeightInput.placeholder = `${dateKey} 몸무게 (kg)`;
         }
         function deleteWeightEntry(dateKey) {
@@ -1623,6 +1602,7 @@
 
                     const dateStr = parts[0];
                     const weight = parseFloat(parts[1]);
+                    const alcohol = parts.slice(2).join(' '); // 나머지 뒷부분은 음주량
 
                     if (!weight || weight <= 0) return;
 
@@ -1639,9 +1619,10 @@
                     const existingIndex = weightData.findIndex(e => e.date === formattedDateKey);
                     if (existingIndex > -1) {
                         weightData[existingIndex].weight = weight;
+                        if (alcohol) weightData[existingIndex].alcohol = alcohol;
                         updatedCount++;
                     } else {
-                        weightData.push({ date: formattedDateKey, weight: weight });
+                        weightData.push({ date: formattedDateKey, weight: weight, alcohol: alcohol });
                         addedCount++;
                     }
                 });
@@ -1654,7 +1635,6 @@
             reader.readAsText(file);
         }
 
-        // --- 그래프(Graph) 기능 ---
         function renderWeightChart() {
             if (currentChartInstance) {
                 currentChartInstance.destroy();
@@ -1671,11 +1651,12 @@
             const today = new Date();
             const labels = [];
             const dataPoints = [];
+            const pointColors = [];
             const fullDateLabels = [];
             
             const weightMap = new Map();
             weightData.forEach(entry => {
-                weightMap.set(entry.date, entry.weight);
+                weightMap.set(entry.date, entry);
             });
 
             let currentDay = new Date(cutoff);
@@ -1686,9 +1667,13 @@
                 fullDateLabels.push(currentDay.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }));
 
                 if (weightMap.has(dateKey)) {
-                    dataPoints.push(weightMap.get(dateKey));
+                    const entry = weightMap.get(dateKey);
+                    dataPoints.push(entry.weight);
+                    // ★ 2. 음주 시 빨간색, 아니면 파란색
+                    pointColors.push(entry.alcohol ? '#ff3b30' : '#007aff');
                 } else {
                     dataPoints.push(null);
+                    pointColors.push('#007aff');
                 }
                 
                 currentDay.setDate(currentDay.getDate() + 1);
@@ -1707,7 +1692,7 @@
                         fill: true,
                         tension: 0.1,
                         pointRadius: 4,
-                        pointBackgroundColor: '#007aff',
+                        pointBackgroundColor: pointColors, // ★ 2. 개별 점 색상 적용
                         spanGaps: false
                     }]
                 },
