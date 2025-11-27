@@ -3,8 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>시간 관리 앱 v9.0</title>
+    <title>시간 관리 앱 v8.6</title>
     
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#007aff">
+
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -107,7 +110,7 @@
 
         /* --- 계획표: 할 일 섹션 --- */
         #todo-section { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-        .input-section { display: flex; margin-bottom: 10px; flex-shrink: 0; gap: 5px; } /* gap 추가 */
+        .input-section { display: flex; margin-bottom: 10px; flex-shrink: 0; gap: 5px; }
         .input-section input[type="text"],
         .input-section input[type="number"] {
             flex-grow: 1; border: 1px solid #ccc; border-radius: 4px;
@@ -140,7 +143,6 @@
             opacity: 0.6;
         }
         
-        /* 수정 가능하도록 outline 제거 */
         .task-item span { flex-grow: 1; cursor: pointer; margin-right: 5px; outline: none; }
         input[type="checkbox"] { margin-right: 8px; flex-shrink: 0; accent-color: #007aff; }
         .task-item.completed { opacity: 0.5; }
@@ -314,16 +316,39 @@
             word-wrap: break-word;
         }
 
-        /* --- 몸무게 기록 --- */
+        /* --- ★ 1. 몸무게 기록 (2열 레이아웃) --- */
         #weight-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
+        
+        /* 리스트 헤더 스타일 */
+        .weight-header {
+            display: flex;
+            align-items: center;
+            padding: 8px 5px;
+            background-color: #f0f0f0;
+            font-weight: 600;
+            color: #333;
+            border-radius: 4px;
+            margin-top: 10px;
+            margin-bottom: 5px;
+            font-size: 13px;
+            text-align: center;
+        }
+        
+        /* 리스트 아이템 스타일 (Grid/Flex 열 맞춤) */
         .weight-item {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            padding: 12px 10px;
+            padding: 10px 5px;
             border-bottom: 1px solid #f0f0f0;
-            font-size: 15px;
+            font-size: 14px;
         }
+        
+        /* 각 열의 너비 설정 */
+        .w-date { flex: 0 0 90px; text-align: left; color: #555; padding-left: 5px; }
+        .w-weight { flex: 0 0 70px; text-align: center; color: #007aff; font-weight: 600; }
+        .w-alcohol { flex: 1; text-align: center; color: #ff3b30; font-weight: 500; }
+        .w-del { flex: 0 0 30px; text-align: right; padding-right: 5px; }
+
         #import-weight-label {
             display: inline-block;
             background-color: #8e8e93;
@@ -338,13 +363,6 @@
             box-sizing: border-box;
         }
         #import-weight-label:hover { opacity: 0.8; }
-        /* 음주량 스타일 */
-        .weight-alcohol {
-            font-size: 13px;
-            color: #ff3b30;
-            margin-left: 10px;
-            font-weight: bold;
-        }
 
         /* --- 그래프 --- */
         #graph-chart-wrapper {
@@ -548,6 +566,12 @@
                 <label for="import-weight-file" id="import-weight-label">과거 기록 (txt) 불러오기</label>
                 <input type="file" id="import-weight-file" accept=".txt" style="display: none;">
             </div>
+            <div class="weight-header">
+                <span class="w-date">날짜</span>
+                <span class="w-weight">몸무게</span>
+                <span class="w-alcohol">음주량</span>
+                <span class="w-del"></span>
+            </div>
             <ul id="weight-list">
             </ul>
         </div>
@@ -643,7 +667,7 @@
         const graphBtn = document.getElementById('graph-btn');
         const weightContainer = document.getElementById('weight-container');
         const newWeightInput = document.getElementById('new-weight-input');
-        const newAlcoholInput = document.getElementById('new-alcohol-input'); // ★ 음주량 입력
+        const newAlcoholInput = document.getElementById('new-alcohol-input'); // 음주량
         const addWeightBtn = document.getElementById('add-weight-btn');
         const weightList = document.getElementById('weight-list');
         const graphContainer = document.getElementById('graph-container');
@@ -891,7 +915,7 @@
                 finalTodoList = data.todos || [];
             }
 
-            // ★ 수정된 로직: 저장된 순서 그대로 복원 (중복 방지, 순서 유지)
+            // 저장된 순서 그대로 복원
             finalTodoList.forEach(t => {
                 addNewTask(t.text, t.checked, t.isImportant, t.isRoutine);
             });
@@ -903,9 +927,9 @@
                         const timeSlot = timeline.querySelector(`[data-time="${time}"]`);
                         if (timeSlot) {
                             tasks.forEach(taskData => {
-                                // 루틴 여부는 목록에서 확인하지 않고, 저장된 데이터가 없으면 false (호환성)
-                                // 현재 로직상 목록에 있어야 드래그 가능하므로 큰 문제 없음.
-                                createDroppedTaskElement(timeSlot, taskData.text, taskData.isImportant, false); 
+                                const text = taskData.text;
+                                const isRoutine = finalTodoList.some(t => t.text === text && t.isRoutine); // 루틴 여부 확인
+                                createDroppedTaskElement(timeSlot, text, taskData.isImportant, isRoutine);
                             });
                         }
                     }
@@ -917,6 +941,33 @@
             
             updateImportantList();
             checkRoutineBtnState();
+        }
+        
+        // ★ 2. (중복 제거 함수) 앱 시작 시 1회 실행
+        function cleanupDuplicates() {
+             for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith('plan_')) {
+                    try {
+                        const data = JSON.parse(localStorage.getItem(key));
+                        if (data && data.todos) {
+                            const seen = new Set();
+                            const uniqueTodos = data.todos.filter(todo => {
+                                const duplicate = seen.has(todo.text);
+                                seen.add(todo.text);
+                                return !duplicate;
+                            });
+                            
+                            if (uniqueTodos.length !== data.todos.length) {
+                                data.todos = uniqueTodos;
+                                localStorage.setItem(key, JSON.stringify(data));
+                            }
+                        }
+                    } catch (e) {
+                        // JSON 파싱 에러 무시
+                    }
+                }
+            }
         }
         
         function checkRoutineBtnState() {
@@ -1094,7 +1145,6 @@
             // ★ 3. 수정 기능 (contentEditable)
             taskSpan.contentEditable = "true";
             taskSpan.addEventListener('blur', () => {
-                // 수정 완료 시 저장 (기존 텍스트로 항목 찾기가 어려우므로 전체 저장)
                 savePlanData();
             });
             taskSpan.addEventListener('keypress', (e) => {
@@ -1139,10 +1189,12 @@
                 savePlanData(); 
             });
 
-            if (isImportant) { taskItem.classList.add('is-important', 'selected'); }
             if (isChecked) {
                 checkbox.checked = true;
                 taskItem.classList.add('completed');
+            }
+            if (isImportant) { 
+                taskItem.classList.add('is-important', 'selected'); 
             }
             
             if (isNewEntry && isRoutine) {
@@ -1197,7 +1249,11 @@
             droppedTask.classList.toggle('is-important', isImportant);
             droppedTask.classList.toggle('is-general', !isImportant);
             
-            droppedTask.appendChild(document.createTextNode(text));
+            // ★ 2. (수정) 텍스트를 별도의 span으로 감쌈 (삭제 버튼과 분리)
+            const textSpan = document.createElement('span');
+            textSpan.textContent = text;
+            textSpan.style.marginRight = '15px'; // 삭제 버튼 공간 확보
+            droppedTask.appendChild(textSpan);
 
             droppedTask.draggable = true;
             droppedTask.addEventListener('dragstart', (e) => {
@@ -1229,6 +1285,7 @@
             
             deleteBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
+                // ★ 2. (수정) 시간표 삭제는 리스트와 동기화
                 deleteTaskGlobally(text);
             });
 
@@ -1254,7 +1311,11 @@
                 targetSlot.classList.remove('drag-over');
                 if (!draggedTaskItem) return;
 
-                const taskText = draggedTaskItem.textContent.replace('×', '').trim();
+                // ★ 2. (수정) 텍스트 추출 방식 변경 (span 내부 텍스트 또는 직접 텍스트)
+                let taskText = draggedTaskItem.textContent.replace('×', '').trim();
+                if (draggedTaskItem.querySelector('span')) {
+                     taskText = draggedTaskItem.querySelector('span').textContent;
+                }
 
                 if (draggedTaskItem.classList.contains('dropped-task')) {
                     draggedTaskItem.style.opacity = '1';
@@ -1277,18 +1338,14 @@
                         isImportant = originalTaskItem.classList.contains('is-important');
                         isRoutine = originalTaskItem.classList.contains('routine-item');
                         
-                        originalTaskItem.classList.add('completed');
-                        const checkbox = originalTaskItem.querySelector('input[type="checkbox"]');
-                        if (checkbox) checkbox.checked = true;
+                        // 복사이므로 원본 변경 없음
                         
-                        // ★ 1. 복사이므로 원본 비활성화 로직 제거
                     } else if (draggedTaskItem.classList.contains('draggable-task')) {
                         isImportant = true;
                     }
 
                     createDroppedTaskElement(targetSlot, taskText, isImportant, isRoutine);
                     
-                    // ★ 1. '중요한 5가지'에서 드래그 시 목록에서 제거
                     if (draggedTaskItem.classList.contains('draggable-task')) {
                         selectedTasks = selectedTasks.filter(task => task !== taskText);
                         updateImportantList();
@@ -1299,224 +1356,7 @@
             });
         }
 
-        // --- 놀이터, 몸무게 등 기존 기능 유지 ---
-        function savePlaygroundData() {
-            if (selectedGoalId) {
-                const goal = playgroundData.goals.find(g => g.id === selectedGoalId);
-                if (goal) { goal.progressNotes = goalProgressNotes.value; }
-            }
-            localStorage.setItem(PLAYGROUND_KEY, JSON.stringify(playgroundData));
-        }
-        function loadPlaygroundData() {
-            const data = JSON.parse(localStorage.getItem(PLAYGROUND_KEY));
-            if (data) { playgroundData = data; }
-            renderGoalList();
-            showGoalProgress(null);
-        }
-        function renderGoalList() {
-            goalList.innerHTML = '';
-            playgroundData.goals.forEach(goal => {
-                const li = document.createElement('li');
-                li.classList.add('goal-item');
-                li.dataset.id = goal.id;
-                li.classList.toggle('completed', goal.checked);
-                li.classList.toggle('selected', goal.id === selectedGoalId);
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.checked = goal.checked;
-                checkbox.addEventListener('change', () => {
-                    goal.checked = checkbox.checked;
-                    li.classList.toggle('completed', goal.checked);
-                    savePlaygroundData();
-                });
-                const span = document.createElement('span');
-                span.textContent = goal.text;
-                span.contentEditable = "true";
-                span.addEventListener('blur', () => {
-                    goal.text = span.textContent;
-                    savePlaygroundData();
-                });
-                span.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') { e.preventDefault(); span.blur(); }
-                });
-                const deleteBtn = document.createElement('button');
-                deleteBtn.classList.add('delete-btn');
-                deleteBtn.innerHTML = '&times;';
-                deleteBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    playgroundData.goals = playgroundData.goals.filter(g => g.id !== goal.id);
-                    savePlaygroundData();
-                    renderGoalList();
-                    if (selectedGoalId === goal.id) { showGoalProgress(null); }
-                });
-                li.appendChild(checkbox);
-                li.appendChild(span);
-                li.appendChild(deleteBtn);
-                li.addEventListener('click', () => { showGoalProgress(goal.id); });
-                goalList.appendChild(li);
-            });
-        }
-        function addNewGoal() {
-            const text = newGoalInput.value.trim();
-            if (text === '') return;
-            const newGoal = {
-                id: crypto.randomUUID(), text: text, checked: false, progressNotes: "",
-                images: []
-            };
-            playgroundData.goals.push(newGoal);
-            savePlaygroundData();
-            renderGoalList();
-            newGoalInput.value = '';
-        }
-        function showGoalProgress(goalId) {
-            if (selectedGoalId) {
-                const oldGoal = playgroundData.goals.find(g => g.id === selectedGoalId);
-                if (oldGoal) { oldGoal.progressNotes = goalProgressNotes.value; }
-                const oldLi = goalList.querySelector(`[data-id="${selectedGoalId}"]`);
-                if (oldLi) oldLi.classList.remove('selected');
-            }
-            selectedGoalId = goalId;
-            if (goalId === null) {
-                goalProgressPlaceholder.classList.remove('hidden');
-                goalProgressContent.classList.add('hidden');
-            } else {
-                const goal = playgroundData.goals.find(g => g.id === goalId);
-                const li = goalList.querySelector(`[data-id="${goalId}"]`);
-                if (li) li.classList.add('selected');
-                goalProgressPlaceholder.classList.add('hidden');
-                goalProgressContent.classList.remove('hidden');
-                goalProgressNotes.value = goal.progressNotes;
-                renderGoalImages();
-            }
-        }
-        goalProgressNotes.addEventListener('input', savePlaygroundData);
-        goalProgressNotes.addEventListener('paste', (e) => {
-            if (!selectedGoalId) return;
-            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
-            for (const item of items) {
-                if (item.type.indexOf('image') === 0) {
-                    const file = item.getAsFile();
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                        addImageToGoal(event.target.result);
-                    };
-                    reader.readAsDataURL(file);
-                }
-            }
-        });
-        function addImageToGoal(base64) {
-            if (!selectedGoalId) return;
-            const goal = playgroundData.goals.find(g => g.id === selectedGoalId);
-            goal.images.push({ src: base64, size: '100' });
-            savePlaygroundData();
-            renderGoalImages();
-        }
-        function renderGoalImages() {
-            goalProgressImages.innerHTML = '';
-            if (!selectedGoalId) return;
-            const goal = playgroundData.goals.find(g => g.id === selectedGoalId);
-            goal.images.forEach((imgData, index) => {
-                const wrapper = document.createElement('div');
-                wrapper.className = 'image-wrapper';
-                const img = document.createElement('img');
-                img.src = imgData.src;
-                img.dataset.size = imgData.size;
-                img.title = "클릭하여 크기 조절 (100% > 75% > 50%)";
-                img.addEventListener('click', () => { cycleImageSize(index); });
-                const controls = document.createElement('div');
-                controls.className = 'image-controls';
-                const upBtn = document.createElement('button');
-                upBtn.innerHTML = '↑';
-                upBtn.title = '위로';
-                if (index === 0) upBtn.disabled = true;
-                upBtn.addEventListener('click', () => { moveImage(index, index - 1); });
-                const downBtn = document.createElement('button');
-                downBtn.innerHTML = '↓';
-                downBtn.title = '아래로';
-                if (index === goal.images.length - 1) downBtn.disabled = true;
-                downBtn.addEventListener('click', () => { moveImage(index, index + 1); });
-                const deleteBtn = document.createElement('button');
-                deleteBtn.innerHTML = '&times;';
-                deleteBtn.title = '삭제';
-                deleteBtn.addEventListener('click', () => { deleteImage(index); });
-                controls.appendChild(upBtn);
-                controls.appendChild(downBtn);
-                controls.appendChild(deleteBtn);
-                wrapper.appendChild(img);
-                wrapper.appendChild(controls);
-                goalProgressImages.appendChild(wrapper);
-            });
-        }
-        function moveImage(index1, index2) {
-            const goal = playgroundData.goals.find(g => g.id === selectedGoalId);
-            if (!goal) return;
-            [goal.images[index1], goal.images[index2]] = [goal.images[index2], goal.images[index1]];
-            savePlaygroundData();
-            renderGoalImages();
-        }
-        function deleteImage(index) {
-            const goal = playgroundData.goals.find(g => g.id === selectedGoalId);
-            if (!goal) return;
-            goal.images.splice(index, 1);
-            savePlaygroundData();
-            renderGoalImages();
-        }
-        function cycleImageSize(index) {
-            const goal = playgroundData.goals.find(g => g.id === selectedGoalId);
-            if (!goal) return;
-            const currentSize = goal.images[index].size;
-            let newSize = '100';
-            if (currentSize === '100') newSize = '75';
-            else if (currentSize === '75') newSize = '50';
-            else if (currentSize === '50') newSize = '100';
-            goal.images[index].size = newSize;
-            savePlaygroundData();
-            renderGoalImages();
-        }
-        goalImageUpload.addEventListener('change', (event) => {
-            if (!selectedGoalId) return;
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (e) => { addImageToGoal(e.target.result); };
-            reader.readAsDataURL(file);
-            goalImageUpload.value = '';
-        });
-        exportGoalPdfBtn.addEventListener('click', () => {
-            if (!selectedGoalId) { alert("PDF로 내보낼 목표를 선택하세요."); return; }
-            savePlaygroundData();
-            const { jsPDF } = window.jspdf;
-            const content = document.getElementById('goal-progress-content');
-            const notesDiv = document.createElement('div');
-            notesDiv.className = 'pdf-render-div';
-            notesDiv.textContent = goalProgressNotes.value;
-            goalProgressContent.insertBefore(notesDiv, goalProgressNotes);
-            goalProgressNotes.classList.add('hidden');
-            html2canvas(content, { scale: 2, useCORS: true }).then(canvas => {
-                goalProgressContent.removeChild(notesDiv);
-                goalProgressNotes.classList.remove('hidden');
-                const imgData = canvas.toDataURL('image/png');
-                const doc = new jsPDF('p', 'mm', 'a4');
-                const imgProps = doc.getImageProperties(imgData);
-                const pdfWidth = doc.internal.pageSize.getWidth();
-                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-                let heightLeft = pdfHeight;
-                let position = 0;
-                const pageHeight = doc.internal.pageSize.getHeight();
-                doc.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
-                heightLeft -= pageHeight;
-                while (heightLeft > 0) {
-                    position = heightLeft - pdfHeight;
-                    doc.addPage();
-                    doc.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
-                    heightLeft -= pageHeight;
-                }
-                const goal = playgroundData.goals.find(g => g.id === selectedGoalId);
-                const fileName = goal ? `goal_${goal.text.substring(0, 20)}.pdf` : 'goal-progress.pdf';
-                doc.save(fileName);
-            });
-        });
-
+        // --- 몸무게 기록 ---
         function saveWeightData() {
             weightData.sort((a, b) => new Date(b.date) - new Date(a.date));
             localStorage.setItem(WEIGHT_KEY, JSON.stringify(weightData));
@@ -1535,17 +1375,20 @@
                 const textWrapper = document.createElement('div');
                 const dateSpan = document.createElement('span');
                 dateSpan.textContent = `${entry.date} `;
-                dateSpan.style.color = "#555";
+                dateSpan.className = 'w-date';
                 const weightSpan = document.createElement('span');
                 weightSpan.textContent = `${entry.weight} kg`;
-                weightSpan.style.fontWeight = "600";
-                weightSpan.style.color = "#007aff";
+                weightSpan.className = 'w-weight';
                 const alcoholSpan = document.createElement('span');
-                alcoholSpan.classList.add('weight-alcohol');
-                if (entry.alcohol) alcoholSpan.textContent = `(${entry.alcohol})`;
-                textWrapper.appendChild(dateSpan);
-                textWrapper.appendChild(weightSpan);
-                textWrapper.appendChild(alcoholSpan);
+                alcoholSpan.className = 'w-alcohol';
+                if (entry.alcohol) alcoholSpan.textContent = `${entry.alcohol}`;
+                
+                textWrapper.style.display = 'contents'; // Grid layout support
+                
+                li.appendChild(dateSpan);
+                li.appendChild(weightSpan);
+                li.appendChild(alcoholSpan);
+                
                 const deleteBtn = document.createElement('button');
                 deleteBtn.classList.add('delete-btn');
                 deleteBtn.innerHTML = '&times;';
@@ -1553,8 +1396,13 @@
                 deleteBtn.addEventListener('click', () => {
                     deleteWeightEntry(entry.date);
                 });
-                li.appendChild(textWrapper);
-                li.appendChild(deleteBtn);
+                
+                // Layout specific container for delete button if needed, or just append
+                const btnContainer = document.createElement('span');
+                btnContainer.className = 'w-del';
+                btnContainer.appendChild(deleteBtn);
+                li.appendChild(btnContainer);
+                
                 weightList.appendChild(li);
             });
         }
@@ -1602,7 +1450,7 @@
 
                     const dateStr = parts[0];
                     const weight = parseFloat(parts[1]);
-                    const alcohol = parts.slice(2).join(' '); // 나머지 뒷부분은 음주량
+                    const alcohol = parts.slice(2).join(' ');
 
                     if (!weight || weight <= 0) return;
 
@@ -1635,6 +1483,7 @@
             reader.readAsText(file);
         }
 
+        // --- 그래프(Graph) 기능 ---
         function renderWeightChart() {
             if (currentChartInstance) {
                 currentChartInstance.destroy();
@@ -1669,7 +1518,6 @@
                 if (weightMap.has(dateKey)) {
                     const entry = weightMap.get(dateKey);
                     dataPoints.push(entry.weight);
-                    // ★ 2. 음주 시 빨간색, 아니면 파란색
                     pointColors.push(entry.alcohol ? '#ff3b30' : '#007aff');
                 } else {
                     dataPoints.push(null);
@@ -1692,7 +1540,7 @@
                         fill: true,
                         tension: 0.1,
                         pointRadius: 4,
-                        pointBackgroundColor: pointColors, // ★ 2. 개별 점 색상 적용
+                        pointBackgroundColor: pointColors,
                         spanGaps: false
                     }]
                 },
@@ -1741,6 +1589,9 @@
 
         // --- 앱 초기화 ---
         function initializeApp() {
+            // ★ 2. 앱 시작 시 데이터 청소
+            cleanupDuplicates();
+            
             createTimeline();
             updateDateDisplay();
             initializeCalendar();
