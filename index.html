@@ -3,11 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>시간 관리 앱 v8.6</title>
+    <title>시간 관리 앱 v9.1</title>
     
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#007aff">
-
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -25,35 +22,73 @@
         .app-container { display: flex; flex-direction: column; height: 100%; width: 100%; }
         .hidden { display: none !important; }
 
-        /* --- 헤더 --- */
+        /* --- ★ 헤더 수정 (반응형) --- */
         #date-header {
-            flex-shrink: 0; padding: 10px; background-color: #ffffff;
-            border-bottom: 1px solid #e0e0e0; display: flex;
-            justify-content: space-between; align-items: center;
+            flex-shrink: 0; 
+            padding: 10px; 
+            background-color: #ffffff;
+            border-bottom: 1px solid #e0e0e0; 
+            display: flex;
+            flex-wrap: wrap; /* 줄바꿈 허용 */
+            justify-content: center; /* 중앙 정렬 */
+            align-items: center;
+            gap: 10px; /* 요소 간 간격 */
         }
-        #date-controls-left, #center-controls, #search-controls-right {
+
+        /* 날짜 컨트롤 (항상 첫 줄 중앙) */
+        #date-controls-left {
             display: flex;
             align-items: center;
+            justify-content: center;
+            width: 100%; /* 작은 화면에서 한 줄 차지 */
+            order: 1;
         }
+        /* 날짜 이외의 도구 모음 (두 번째 줄) */
+        #tools-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            order: 2;
+        }
+        
+        /* 화면이 넓을 때 (PC/가로모드) */
+        @media (min-width: 600px) {
+            #date-header {
+                flex-wrap: nowrap; /* 줄바꿈 없음 */
+                justify-content: space-between;
+            }
+            #date-controls-left {
+                width: auto;
+                justify-content: flex-start;
+                order: 0;
+            }
+            #tools-container {
+                width: auto;
+                justify-content: flex-end;
+                gap: 15px;
+            }
+        }
+
         #date-header button {
             background: none; border: none; font-size: 20px; font-weight: bold;
-            color: #007aff; cursor: pointer; padding: 0 10px;
+            color: #007aff; cursor: pointer; padding: 0 8px;
         }
         #current-date {
-            min-width: 120px; text-align: center; font-size: 18px;
+            min-width: 110px; text-align: center; font-size: 18px;
             font-weight: 600; color: #333;
         }
-        #calendar-btn, #memo-btn, #today-btn { 
-            font-size: 24px; padding: 0 5px; 
+        
+        /* 아이콘 버튼들 크기 조정 */
+        #calendar-btn, #memo-btn, #today-btn, 
+        #weight-btn, #graph-btn, #playground-btn, #settings-btn, #search-btn { 
+            font-size: 22px; padding: 0 4px; 
         }
-        #center-controls button { font-size: 24px; padding: 0 8px; }
-        #search-controls-right { justify-content: flex-end; }
-        #playground-btn, #settings-btn { font-size: 24px; padding: 0 8px; }
+
         #search-input {
-            border: 1px solid #ccc; border-radius: 4px; padding: 6px 8px;
-            font-size: 14px; max-width: 100px;
+            border: 1px solid #ccc; border-radius: 4px; padding: 6px;
+            font-size: 14px; width: 80px; /* 너비 줄임 */
         }
-        #search-btn { font-size: 22px; padding: 0 8px; }
 
         /* --- 공통 패널 컨테이너 --- */
         .main-container {
@@ -118,7 +153,7 @@
         }
         .input-section button {
             background-color: #007aff; color: white; border: none; border-radius: 4px;
-            padding: 8px 12px; cursor: pointer;
+            padding: 8px 12px; margin-left: 8px; cursor: pointer;
             font-size: 16px; font-weight: bold;
             flex-shrink: 0;
         }
@@ -316,34 +351,17 @@
             word-wrap: break-word;
         }
 
-        /* --- ★ 1. 몸무게 기록 (2열 레이아웃) --- */
+        /* --- 몸무게 기록 --- */
         #weight-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
-        
-        /* 리스트 헤더 스타일 */
         .weight-header {
-            display: flex;
-            align-items: center;
-            padding: 8px 5px;
-            background-color: #f0f0f0;
-            font-weight: 600;
-            color: #333;
-            border-radius: 4px;
-            margin-top: 10px;
-            margin-bottom: 5px;
-            font-size: 13px;
-            text-align: center;
+            display: flex; align-items: center; padding: 8px 5px;
+            background-color: #f0f0f0; font-weight: 600; color: #333;
+            border-radius: 4px; margin-top: 10px; margin-bottom: 5px; font-size: 13px; text-align: center;
         }
-        
-        /* 리스트 아이템 스타일 (Grid/Flex 열 맞춤) */
         .weight-item {
-            display: flex;
-            align-items: center;
-            padding: 10px 5px;
-            border-bottom: 1px solid #f0f0f0;
-            font-size: 14px;
+            display: flex; align-items: center; padding: 10px 5px;
+            border-bottom: 1px solid #f0f0f0; font-size: 14px;
         }
-        
-        /* 각 열의 너비 설정 */
         .w-date { flex: 0 0 90px; text-align: left; color: #555; padding-left: 5px; }
         .w-weight { flex: 0 0 70px; text-align: center; color: #007aff; font-weight: 600; }
         .w-alcohol { flex: 1; text-align: center; color: #ff3b30; font-weight: 500; }
@@ -484,15 +502,17 @@
                 <button id="calendar-btn" aria-label="달력 열기">📅</button>
                 <button id="memo-btn" aria-label="메모 보기">📝</button>
             </div>
-            <div id="center-controls">
-                <button id="weight-btn" aria-label="몸무게">⚖️</button>
-                <button id="graph-btn" aria-label="그래프">📈</button>
-            </div>
-            <div id="search-controls-right">
-                <button id="playground-btn" aria-label="놀이터">🏟️</button>
-                <input type="search" id="search-input" placeholder="검색...">
-                <button id="search-btn" aria-label="검색">🔍</button>
-                <button id="settings-btn" aria-label="설정">⚙️</button>
+            <div id="tools-container">
+                <div style="display:flex; align-items:center;">
+                    <button id="weight-btn" aria-label="몸무게">⚖️</button>
+                    <button id="graph-btn" aria-label="그래프">📈</button>
+                </div>
+                <div style="display:flex; align-items:center;">
+                    <button id="playground-btn" aria-label="놀이터">🏟️</button>
+                    <input type="search" id="search-input" placeholder="검색...">
+                    <button id="search-btn" aria-label="검색">🔍</button>
+                    <button id="settings-btn" aria-label="설정">⚙️</button>
+                </div>
             </div>
         </div>
 
@@ -667,7 +687,7 @@
         const graphBtn = document.getElementById('graph-btn');
         const weightContainer = document.getElementById('weight-container');
         const newWeightInput = document.getElementById('new-weight-input');
-        const newAlcoholInput = document.getElementById('new-alcohol-input'); // 음주량
+        const newAlcoholInput = document.getElementById('new-alcohol-input');
         const addWeightBtn = document.getElementById('add-weight-btn');
         const weightList = document.getElementById('weight-list');
         const graphContainer = document.getElementById('graph-container');
@@ -927,9 +947,9 @@
                         const timeSlot = timeline.querySelector(`[data-time="${time}"]`);
                         if (timeSlot) {
                             tasks.forEach(taskData => {
-                                const text = taskData.text;
-                                const isRoutine = finalTodoList.some(t => t.text === text && t.isRoutine); // 루틴 여부 확인
-                                createDroppedTaskElement(timeSlot, text, taskData.isImportant, isRoutine);
+                                // 루틴 여부는 목록에서 확인하지 않고, 저장된 데이터가 없으면 false (호환성)
+                                // 현재 로직상 목록에 있어야 드래그 가능하므로 큰 문제 없음.
+                                createDroppedTaskElement(timeSlot, taskData.text, taskData.isImportant, false); 
                             });
                         }
                     }
@@ -941,6 +961,17 @@
             
             updateImportantList();
             checkRoutineBtnState();
+        }
+        
+        function checkRoutineBtnState() {
+            const routineItemsInList = todoList.querySelectorAll('.routine-item');
+            if (routineItemsInList.length > 0) {
+                applyRoutineBtn.classList.add('active'); 
+                applyRoutineBtn.title = "매일 루틴 삭제";
+            } else {
+                applyRoutineBtn.classList.remove('active');
+                applyRoutineBtn.title = "매일 루틴 적용";
+            }
         }
         
         // ★ 2. (중복 제거 함수) 앱 시작 시 1회 실행
@@ -967,17 +998,6 @@
                         // JSON 파싱 에러 무시
                     }
                 }
-            }
-        }
-        
-        function checkRoutineBtnState() {
-            const routineItemsInList = todoList.querySelectorAll('.routine-item');
-            if (routineItemsInList.length > 0) {
-                applyRoutineBtn.classList.add('active'); 
-                applyRoutineBtn.title = "매일 루틴 삭제";
-            } else {
-                applyRoutineBtn.classList.remove('active');
-                applyRoutineBtn.title = "매일 루틴 적용";
             }
         }
 
@@ -1122,6 +1142,7 @@
         
         function addNewTask(taskText = null, isChecked = false, isImportant = false, isRoutine = false, isNewEntry = false) {
             if (taskText === null) {
+                // isNewEntry = true; // (파라미터로 받음)
                 taskText = newTaskInput.value.trim();
                 if (taskText === '') return;
                 
