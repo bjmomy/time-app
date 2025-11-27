@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>시간 관리 앱 v9.1</title>
+    <title>시간 관리 앱 v9.2</title>
     
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     
@@ -22,73 +22,35 @@
         .app-container { display: flex; flex-direction: column; height: 100%; width: 100%; }
         .hidden { display: none !important; }
 
-        /* --- ★ 헤더 수정 (반응형) --- */
+        /* --- 헤더 --- */
         #date-header {
-            flex-shrink: 0; 
-            padding: 10px; 
-            background-color: #ffffff;
-            border-bottom: 1px solid #e0e0e0; 
-            display: flex;
-            flex-wrap: wrap; /* 줄바꿈 허용 */
-            justify-content: center; /* 중앙 정렬 */
-            align-items: center;
-            gap: 10px; /* 요소 간 간격 */
+            flex-shrink: 0; padding: 10px; background-color: #ffffff;
+            border-bottom: 1px solid #e0e0e0; display: flex;
+            justify-content: space-between; align-items: center;
         }
-
-        /* 날짜 컨트롤 (항상 첫 줄 중앙) */
-        #date-controls-left {
+        #date-controls-left, #center-controls, #search-controls-right {
             display: flex;
             align-items: center;
-            justify-content: center;
-            width: 100%; /* 작은 화면에서 한 줄 차지 */
-            order: 1;
         }
-        /* 날짜 이외의 도구 모음 (두 번째 줄) */
-        #tools-container {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            width: 100%;
-            order: 2;
-        }
-        
-        /* 화면이 넓을 때 (PC/가로모드) */
-        @media (min-width: 600px) {
-            #date-header {
-                flex-wrap: nowrap; /* 줄바꿈 없음 */
-                justify-content: space-between;
-            }
-            #date-controls-left {
-                width: auto;
-                justify-content: flex-start;
-                order: 0;
-            }
-            #tools-container {
-                width: auto;
-                justify-content: flex-end;
-                gap: 15px;
-            }
-        }
-
         #date-header button {
             background: none; border: none; font-size: 20px; font-weight: bold;
-            color: #007aff; cursor: pointer; padding: 0 8px;
+            color: #007aff; cursor: pointer; padding: 0 10px;
         }
         #current-date {
-            min-width: 110px; text-align: center; font-size: 18px;
+            min-width: 120px; text-align: center; font-size: 18px;
             font-weight: 600; color: #333;
         }
-        
-        /* 아이콘 버튼들 크기 조정 */
-        #calendar-btn, #memo-btn, #today-btn, 
-        #weight-btn, #graph-btn, #playground-btn, #settings-btn, #search-btn { 
-            font-size: 22px; padding: 0 4px; 
+        #calendar-btn, #memo-btn, #today-btn { 
+            font-size: 24px; padding: 0 5px; 
         }
-
+        #center-controls button { font-size: 24px; padding: 0 8px; }
+        #search-controls-right { justify-content: flex-end; }
+        #playground-btn, #settings-btn { font-size: 24px; padding: 0 8px; }
         #search-input {
-            border: 1px solid #ccc; border-radius: 4px; padding: 6px;
-            font-size: 14px; width: 80px; /* 너비 줄임 */
+            border: 1px solid #ccc; border-radius: 4px; padding: 6px 8px;
+            font-size: 14px; max-width: 100px;
         }
+        #search-btn { font-size: 22px; padding: 0 8px; }
 
         /* --- 공통 패널 컨테이너 --- */
         .main-container {
@@ -131,9 +93,7 @@
             color: #007aff;
             padding: 0;
         }
-        #apply-routine-btn.active {
-            color: #FF9500;
-        }
+        #apply-routine-btn.active { color: #FF9500; }
         #apply-routine-btn:hover { opacity: 0.7; }
 
         /* --- 메모 컨테이너 --- */
@@ -154,8 +114,7 @@
         .input-section button {
             background-color: #007aff; color: white; border: none; border-radius: 4px;
             padding: 8px 12px; margin-left: 8px; cursor: pointer;
-            font-size: 16px; font-weight: bold;
-            flex-shrink: 0;
+            font-size: 16px; font-weight: bold; flex-shrink: 0;
         }
         #todo-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
         .task-item {
@@ -169,14 +128,8 @@
             align-items: center;
             transition: opacity 0.3s;
         }
-        .routine-item {
-            background-color: #fdfdfd;
-        }
-        .routine-item span::before {
-            content: "📌 ";
-            font-size: 12px;
-            opacity: 0.6;
-        }
+        .routine-item { background-color: #fdfdfd; }
+        .routine-item span::before { content: "📌 "; font-size: 12px; opacity: 0.6; }
         
         .task-item span { flex-grow: 1; cursor: pointer; margin-right: 5px; outline: none; }
         input[type="checkbox"] { margin-right: 8px; flex-shrink: 0; accent-color: #007aff; }
@@ -262,30 +215,16 @@
             background-color: #E3F2FD;
             border-color: #BBDEFB;
         }
-        
         .timeline-delete-btn {
-            background: none;
-            border: none;
-            color: #aaa;
-            font-size: 16px;
-            font-weight: bold;
-            line-height: 1;
-            cursor: pointer;
-            padding: 0 0 0 5px;
-            opacity: 0;
-            transition: opacity 0.2s;
-            pointer-events: none;
+            background: none; border: none; color: #aaa;
+            font-size: 16px; font-weight: bold; line-height: 1;
+            cursor: pointer; padding: 0 0 0 5px;
+            opacity: 0; transition: opacity 0.2s; pointer-events: none;
         }
-        .dropped-task:hover .timeline-delete-btn {
-            opacity: 1;
-            pointer-events: auto;
-        }
-        .timeline-delete-btn:hover {
-            color: #ff3b30;
-        }
+        .dropped-task:hover .timeline-delete-btn { opacity: 1; pointer-events: auto; }
+        .timeline-delete-btn:hover { color: #ff3b30; }
 
-
-        /* --- 놀이터(Playground) 스타일 --- */
+        /* --- 놀이터 스타일 --- */
         #goal-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
         .goal-item {
             padding: 10px; border: 1px solid #eee; border-radius: 4px;
@@ -351,8 +290,27 @@
             word-wrap: break-word;
         }
 
-        /* --- 몸무게 기록 --- */
+        /* --- ★ 몸무게 기록 (반응형 입력창 수정) --- */
         #weight-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
+        
+        /* 입력 섹션 반응형 처리 */
+        #weight-input-section {
+            display: flex;
+            flex-wrap: wrap; /* 좁은 화면에서 줄바꿈 */
+            gap: 8px;
+            margin-bottom: 10px;
+            align-items: stretch;
+        }
+        #new-weight-input {
+            flex: 1 1 120px; /* 최소 120px, 여유 공간 있으면 늘어남 */
+        }
+        #new-alcohol-input {
+            flex: 1 1 120px;
+        }
+        #add-weight-btn {
+            flex: 0 0 50px; /* 버튼 크기 고정 */
+        }
+
         .weight-header {
             display: flex; align-items: center; padding: 8px 5px;
             background-color: #f0f0f0; font-weight: 600; color: #333;
@@ -368,17 +326,10 @@
         .w-del { flex: 0 0 30px; text-align: right; padding-right: 5px; }
 
         #import-weight-label {
-            display: inline-block;
-            background-color: #8e8e93;
-            color: white;
-            padding: 8px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            text-align: center;
-            width: 100%;
-            box-sizing: border-box;
+            display: inline-block; background-color: #8e8e93; color: white;
+            padding: 8px 12px; border-radius: 4px; cursor: pointer;
+            font-size: 14px; font-weight: 500; text-align: center;
+            width: 100%; box-sizing: border-box;
         }
         #import-weight-label:hover { opacity: 0.8; }
 
@@ -394,7 +345,7 @@
             bottom: -2px; left: 50%; transform: translateX(-50%); font-size: 16px;
         }
 
-        /* --- 공통 모달 스타일 --- */
+        /* --- 공통 모달 --- */
         .modal-overlay {
             position: fixed; z-index: 1000; left: 0; top: 0;
             width: 100%; height: 100%; background-color: rgba(0,0,0,0.4);
@@ -415,7 +366,6 @@
             cursor: pointer; background: none; border: none; padding: 0;
         }
         
-        /* --- 검색 모달 --- */
         #search-results-list { list-style: none; padding: 0; margin: 10px 0 0; overflow-y: auto; }
         .search-result-item {
             padding: 10px; border-bottom: 1px solid #f0f0f0; cursor: pointer;
@@ -424,66 +374,27 @@
         .search-result-item small { font-weight: 600; color: #007aff; display: block; }
         .search-result-item p { margin: 5px 0 0; color: #333; }
         
-        /* --- 설정/루틴 모달 스타일 --- */
-        .modal-body {
-            padding-top: 15px;
-            overflow-y: auto;
-        }
-        .modal-body label {
-            display: block;
-            font-weight: 600;
-            font-size: 15px;
-            margin-bottom: 8px;
-            color: #333;
-        }
+        .modal-body { padding-top: 15px; overflow-y: auto; }
+        .modal-body label { display: block; font-weight: 600; font-size: 15px; margin-bottom: 8px; color: #333; }
         .modal-body textarea {
-            width: 100%;
-            height: 150px;
-            box-sizing: border-box;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            padding: 8px;
-            font-size: 14px;
-            font-family: inherit;
-            resize: vertical;
-            margin-bottom: 15px;
+            width: 100%; height: 150px; box-sizing: border-box;
+            border: 1px solid #ccc; border-radius: 4px; padding: 8px;
+            font-size: 14px; font-family: inherit; resize: vertical; margin-bottom: 15px;
         }
         .modal-body button {
-            background-color: #007aff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            padding: 10px 15px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            margin-top: 10px;
-            width: 100%;
-            box-sizing: border-box;
+            background-color: #007aff; color: white; border: none;
+            border-radius: 5px; padding: 10px 15px; font-size: 16px;
+            font-weight: 600; cursor: pointer; margin-top: 10px;
+            width: 100%; box-sizing: border-box;
         }
-        .modal-body button.secondary {
-            background-color: #f0f0f0;
-            color: #333;
-        }
-        .modal-body button.danger {
-            background-color: #ff3b30;
-        }
-        .modal-body button:hover {
-            opacity: 0.8;
-        }
+        .modal-body button.secondary { background-color: #f0f0f0; color: #333; }
+        .modal-body button.danger { background-color: #ff3b30; }
+        .modal-body button:hover { opacity: 0.8; }
         #import-data-label {
-            display: inline-block;
-            background-color: #5856d6;
-            color: white;
-            padding: 10px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: 600;
-            text-align: center;
-            margin-top: 10px;
-            width: 100%;
-            box-sizing: border-box;
+            display: inline-block; background-color: #5856d6; color: white;
+            padding: 10px 15px; border-radius: 5px; cursor: pointer;
+            font-size: 16px; font-weight: 600; text-align: center;
+            margin-top: 10px; width: 100%; box-sizing: border-box;
         }
         #import-data-label:hover { opacity: 0.8; }
         
@@ -502,17 +413,15 @@
                 <button id="calendar-btn" aria-label="달력 열기">📅</button>
                 <button id="memo-btn" aria-label="메모 보기">📝</button>
             </div>
-            <div id="tools-container">
-                <div style="display:flex; align-items:center;">
-                    <button id="weight-btn" aria-label="몸무게">⚖️</button>
-                    <button id="graph-btn" aria-label="그래프">📈</button>
-                </div>
-                <div style="display:flex; align-items:center;">
-                    <button id="playground-btn" aria-label="놀이터">🏟️</button>
-                    <input type="search" id="search-input" placeholder="검색...">
-                    <button id="search-btn" aria-label="검색">🔍</button>
-                    <button id="settings-btn" aria-label="설정">⚙️</button>
-                </div>
+            <div id="center-controls">
+                <button id="weight-btn" aria-label="몸무게">⚖️</button>
+                <button id="graph-btn" aria-label="그래프">📈</button>
+            </div>
+            <div id="search-controls-right">
+                <button id="playground-btn" aria-label="놀이터">🏟️</button>
+                <input type="search" id="search-input" placeholder="검색...">
+                <button id="search-btn" aria-label="검색">🔍</button>
+                <button id="settings-btn" aria-label="설정">⚙️</button>
             </div>
         </div>
 
@@ -577,9 +486,9 @@
         
         <div id="weight-container" class="main-container single-panel-view hidden">
             <h3>몸무게 기록</h3>
-            <div class="input-section">
+            <div class="input-section" id="weight-input-section">
                 <input type="number" id="new-weight-input" placeholder="오늘 몸무게 (kg)" step="0.1">
-                <input type="text" id="new-alcohol-input" placeholder="음주량" style="flex-grow:0.5;">
+                <input type="text" id="new-alcohol-input" placeholder="음주량">
                 <button id="add-weight-btn">+</button>
             </div>
             <div class="input-section" style="margin-top: 5px;">
@@ -903,7 +812,7 @@
             timeline.querySelectorAll('.time-slot').forEach(slot => {
                 const time = slot.dataset.time;
                 const tasks = Array.from(slot.querySelectorAll('.dropped-task')).map(task => ({
-                    text: task.childNodes[0].nodeValue,
+                    text: task.querySelector('span').textContent, // ★ 2. span 내부 텍스트만 저장
                     isImportant: task.classList.contains('is-important')
                 }));
                 if (tasks.length > 0) timelineTasks[time] = tasks;
@@ -1124,7 +1033,11 @@
             
             const timelineTasks = timeline.querySelectorAll('.dropped-task');
             timelineTasks.forEach(task => {
-                if (task.childNodes[0].nodeValue === taskText) {
+                // ★ 2. (수정) 텍스트 비교 시 span 고려
+                let droppedText = task.textContent.replace('×', '').trim();
+                if (task.querySelector('span')) droppedText = task.querySelector('span').textContent;
+                
+                if (droppedText === taskText) {
                     task.remove();
                 }
             });
@@ -1142,7 +1055,6 @@
         
         function addNewTask(taskText = null, isChecked = false, isImportant = false, isRoutine = false, isNewEntry = false) {
             if (taskText === null) {
-                // isNewEntry = true; // (파라미터로 받음)
                 taskText = newTaskInput.value.trim();
                 if (taskText === '') return;
                 
