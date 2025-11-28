@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>시간 관리 앱 v9.1 </title>
+    <title>시간 관리 앱 v9.2</title>
 
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#007aff"> 
+
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-   
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -128,7 +129,10 @@
             font-size: 16px; font-weight: bold;
             flex-shrink: 0;
         }
-        #todo-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
+        #todo-list { 
+            list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1;
+            min-height: 400px; /* 10줄 정도 디폴트로 보이게 설정 */
+        }
         .task-item {
             padding: 8px 10px;
             border: none;
@@ -155,33 +159,10 @@
         .task-item.completed { opacity: 0.5; }
         .task-item.completed span { text-decoration: line-through; color: #888; }
         .task-item.is-important span { color: #d32f2f; font-weight: bold; }
-        .task-item.selected { background-color: transparent; }
         .delete-btn {
             background: none; border: none; color: #ff3b30; font-size: 22px;
             font-weight: 500; line-height: 1; cursor: pointer;
             padding: 0 2px 0 8px; margin-left: auto; flex-shrink: 0;
-        }
-
-        /* 계획표: '중요한 5가지' */
-        #important-section {
-            margin-top: 10px; padding-top: 10px; border-top: 1px dashed #ccc;
-            flex-shrink: 0; overflow-y: auto; max-height: 200px;
-            background-color: #fff; /* 배경색 추가하여 겹침 방지 */
-            position: relative; z-index: 1;
-        }
-        #important-list { min-height: 40px; }
-        .draggable-task {
-            padding: 10px;
-            background-color: transparent;
-            border: none;
-            border-bottom: 1px solid #f0f0f0;
-            color: #d32f2f;
-            border-radius: 0;
-            margin-bottom: 5px;
-            cursor: grab;
-            font-weight: bold;
-            font-size: 15px;
-            text-align: center;
         }
 
         /* --- 계획표: 타임라인 --- */
@@ -365,14 +346,14 @@
             display: inline-block;
             background-color: #8e8e93;
             color: white;
-            padding: 8px 12px;
+            padding: 4px 10px;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 12px;
             font-weight: 500;
             text-align: center;
-            width: 100%;
-            box-sizing: border-box;
+            width: auto;
+            line-height: 1.4;
         }
         #import-weight-label:hover { opacity: 0.8; }
 
@@ -481,9 +462,9 @@
         }
         #import-data-label:hover { opacity: 0.8; }
 
-        /* --- 반응형 (모바일 세로 모드) --- */
+        /* --- 반응형 (모바일) --- */
         @media (max-width: 768px) {
-            /* 1. 메뉴판(헤더)이 잘리지 않고 모두 보이도록 수정 */
+            /* 1. 헤더 수정 (공통) */
             #date-header {
                 flex-wrap: wrap; /* 내용이 넘치면 줄바꿈 */
                 height: auto;
@@ -506,27 +487,64 @@
                 font-size: 16px; /* 모바일에서 날짜 폰트 조금 축소 */
                 min-width: auto;
             }
+        }
 
-            /* 2. 입력창이 시간표란을 침범하지 않게: 좌우 배치를 상하 배치로 변경 */
+        /* 2. 모바일 세로 모드: 상하 배치, 할일 8줄 */
+        @media (max-width: 768px) and (orientation: portrait) {
             .main-container {
                 flex-direction: column;
             }
-            .left-panel, .right-panel {
-                border-right: none;
-                width: 100%;
-                flex: 1; 
-                min-height: 0; /* flex 자식 스크롤 문제 방지 */
-            }
             .left-panel {
+                width: 100%;
+                border-right: none;
                 border-bottom: 1px solid #e0e0e0;
-                height: 50%; /* 화면 절반씩 차지 */
+                flex: 0 0 auto; /* 내용물 크기에 맞춤 (아래 height 참고) */
+                height: auto; 
             }
             .right-panel {
-                height: 50%;
+                width: 100%;
+                flex: 1; /* 남은 공간 모두 차지 */
+                min-height: 0;
+            }
+            /* 세로 모드에서 할일 리스트 높이 조정 (약 8줄) */
+            #todo-list {
+                height: 240px;
+                min-height: 240px; 
+            }
+            #todo-section {
+                min-height: 0; /* 컨테이너 제한 해제 */
+            }
+        }
+
+        /* 3. 모바일 가로 모드 (또는 화면 높이가 낮을 때): 좌우 배치 */
+        @media (max-width: 900px) and (orientation: landscape) {
+            .main-container {
+                flex-direction: row;
+            }
+            /* ★ Single Panel View는 가로모드에서도 상하 배치 유지 (몸무게 기록 등) */
+            .main-container.single-panel-view {
+                flex-direction: column;
+            }
+
+            .left-panel {
+                width: 50%;
+                height: 100%;
+                border-right: 1px solid #e0e0e0;
+                border-bottom: none;
+                flex: 1;
+            }
+            .right-panel {
+                width: 50%;
+                height: 100%;
+                flex: 1;
+            }
+            /* 높이가 부족하므로 min-height 해제하여 스크롤 유도 */
+            #todo-list {
+                min-height: 0; 
+                flex-grow: 1;
             }
         }
     </style>
-<link rel="stylesheet" href="/index.css">
 </head>
 <body>
 
@@ -565,10 +583,6 @@
                         <button id="add-task-btn">+</button>
                     </div>
                     <ul id="todo-list"></ul>
-                </div>
-                <div id="important-section">
-                    <h3>중요한 5가지</h3>
-                    <div id="important-list"></div>
                 </div>
             </div>
             <div class="right-panel">
@@ -613,15 +627,15 @@
         </div>
         
         <div id="weight-container" class="main-container single-panel-view hidden">
-            <h3>몸무게 기록</h3>
+            <div class="h3-wrapper">
+                <h3>몸무게 기록</h3>
+                <label for="import-weight-file" id="import-weight-label">과거 기록 (txt) 불러오기</label>
+                <input type="file" id="import-weight-file" accept=".txt" style="display: none;">
+            </div>
             <div class="input-section">
                 <input type="number" id="new-weight-input" placeholder="오늘 몸무게 (kg)" step="0.1">
                 <input type="text" id="new-alcohol-input" placeholder="음주량" style="flex-grow:0.5;">
                 <button id="add-weight-btn">+</button>
-            </div>
-            <div class="input-section" style="margin-top: 5px;">
-                <label for="import-weight-file" id="import-weight-label">과거 기록 (txt) 불러오기</label>
-                <input type="file" id="import-weight-file" accept=".txt" style="display: none;">
             </div>
             
             <div id="weight-sheet-wrapper">
@@ -701,7 +715,6 @@
         const newTaskInput = document.getElementById('new-task-input');
         const addTaskBtn = document.getElementById('add-task-btn');
         const todoList = document.getElementById('todo-list');
-        const importantList = document.getElementById('important-list');
         const timeline = document.getElementById('timeline');
         const dateDisplay = document.getElementById('current-date');
         const prevDayBtn = document.getElementById('prev-day');
@@ -734,8 +747,7 @@
         const newWeightInput = document.getElementById('new-weight-input');
         const newAlcoholInput = document.getElementById('new-alcohol-input'); 
         const addWeightBtn = document.getElementById('add-weight-btn');
-        // const weightList = document.getElementById('weight-list'); // 제거됨
-        const weightTableBody = document.getElementById('weight-table-body'); // 추가됨
+        const weightTableBody = document.getElementById('weight-table-body'); 
         
         const graphContainer = document.getElementById('graph-container');
         const graphRangeLabel = document.getElementById('graph-range-label');
@@ -758,7 +770,6 @@
         const importWeightFile = document.getElementById('import-weight-file');
 
         // --- 상태 변수 ---
-        let selectedTasks = []; 
         let draggedTaskItem = null;
         let currentDate = new Date();
         let calendarInstance = null;
@@ -844,11 +855,8 @@
             if (routineItemsInList.length > 0) {
                 if (!confirm("현재 날짜의 루틴을 목록에서 삭제하시겠습니까?")) return;
                 routineItemsInList.forEach(item => {
-                    const taskText = item.querySelector('span').textContent;
-                    selectedTasks = selectedTasks.filter(task => task !== taskText);
                     item.remove();
                 });
-                updateImportantList();
             } else {
                 if (currentRoutines.length === 0) {
                     alert("설정(⚙️)에서 '매일 루틴'을 먼저 등록해주세요.");
@@ -956,7 +964,8 @@
                 if (tasks.length > 0) timelineTasks[time] = tasks;
             });
             const memoText = memoTextarea.value;
-            const data = { todos, timelineTasks, selectedTasks, memoText };
+            // selectedTasks removed
+            const data = { todos, timelineTasks, memoText };
             
             if (data.todos.length === 0 && Object.keys(timelineTasks).length === 0 && memoText.trim() === '') {
                 localStorage.removeItem(key);
@@ -972,7 +981,6 @@
             const data = JSON.parse(localStorage.getItem(key));
             
             todoList.innerHTML = '';
-            importantList.innerHTML = '';
             timeline.querySelectorAll('.dropped-task').forEach(task => task.remove());
             memoTextarea.value = '';
             
@@ -987,7 +995,7 @@
             });
             
             if (data) {
-                selectedTasks = data.selectedTasks || [];
+                // selectedTasks load removed
                 if (data.timelineTasks) {
                     for (const [time, tasks] of Object.entries(data.timelineTasks)) {
                         const timeSlot = timeline.querySelector(`[data-time="${time}"]`);
@@ -999,11 +1007,8 @@
                     }
                 }
                 if (data.memoText) { memoTextarea.value = data.memoText; }
-            } else {
-                selectedTasks = [];
             }
             
-            updateImportantList();
             checkRoutineBtnState();
         }
         
@@ -1136,9 +1141,6 @@
                 return;
             }
 
-            selectedTasks = selectedTasks.filter(task => task !== taskText);
-            updateImportantList();
-            
             const timelineTasks = timeline.querySelectorAll('.dropped-task');
             timelineTasks.forEach(task => {
                 if (task.childNodes[0].nodeValue === taskText) {
@@ -1187,6 +1189,12 @@
                  if (e.key === 'Enter') { e.preventDefault(); taskSpan.blur(); }
             });
 
+            // ★ 1. 클릭 시 중요 표시(빨강 굵게) 토글 복원
+            taskSpan.addEventListener('click', (e) => {
+                 taskItem.classList.toggle('is-important');
+                 savePlanData();
+            });
+
             const deleteBtn = document.createElement('button');
             deleteBtn.classList.add('delete-btn');
             deleteBtn.innerHTML = '&times;';
@@ -1207,9 +1215,6 @@
                 if (draggedTaskItem) { draggedTaskItem.style.opacity = '1'; }
                 draggedTaskItem = null;
             });
-            taskSpan.addEventListener('click', () => {
-                toggleTaskSelection(taskItem, taskText);
-            });
 
             if (isRoutine) {
                 deleteBtn.style.display = 'none'; 
@@ -1224,7 +1229,7 @@
                 savePlanData(); 
             });
 
-            if (isImportant) { taskItem.classList.add('is-important', 'selected'); }
+            if (isImportant) { taskItem.classList.add('is-important'); }
             if (isChecked) {
                 checkbox.checked = true;
                 taskItem.classList.add('completed');
@@ -1237,43 +1242,6 @@
             }
 
             if (isNewEntry) { savePlanData(); }
-        }
-
-        function toggleTaskSelection(taskItem, taskText) {
-            const isSelected = taskItem.classList.contains('selected');
-            if (isSelected) {
-                taskItem.classList.remove('selected', 'is-important');
-                selectedTasks = selectedTasks.filter(task => task !== taskText);
-            } else {
-                if (selectedTasks.length < 5) {
-                    taskItem.classList.add('selected', 'is-important');
-                    selectedTasks.push(taskText);
-                } else {
-                    alert('중요한 5가지만 선택할 수 있습니다.');
-                }
-            }
-            updateImportantList();
-            savePlanData();
-        }
-        function updateImportantList() {
-            importantList.innerHTML = ''; 
-            selectedTasks.forEach(taskText => {
-                const draggableTask = document.createElement('div');
-                draggableTask.classList.add('draggable-task');
-                draggableTask.textContent = taskText;
-                draggableTask.draggable = true; 
-                draggableTask.addEventListener('dragstart', (e) => {
-                    draggedTaskItem = draggableTask;
-                    e.dataTransfer.effectAllowed = 'move';
-                    e.dataTransfer.setData('text/plain', taskText);
-                    setTimeout(() => { draggableTask.style.opacity = '0.5'; }, 0);
-                });
-                draggableTask.addEventListener('dragend', () => {
-                    if (draggedTaskItem) { draggableTask.style.opacity = '1'; }
-                    draggedTaskItem = null;
-                });
-                importantList.appendChild(draggableTask);
-            });
         }
 
         function createDroppedTaskElement(timeSlot, text, isImportant, isRoutine) {
@@ -1344,7 +1312,7 @@
                     draggedTaskItem.style.opacity = '1';
                     targetSlot.appendChild(draggedTaskItem);
                 }
-                else if (draggedTaskItem.classList.contains('task-item') || draggedTaskItem.classList.contains('draggable-task')) {
+                else if (draggedTaskItem.classList.contains('task-item')) {
                     let isImportant = false;
                     let isRoutine = false; 
                     let originalTaskItem = null;
@@ -1364,17 +1332,9 @@
                         originalTaskItem.classList.add('completed');
                         const checkbox = originalTaskItem.querySelector('input[type="checkbox"]');
                         if (checkbox) checkbox.checked = true;
-                        
-                    } else if (draggedTaskItem.classList.contains('draggable-task')) {
-                        isImportant = true;
                     }
 
                     createDroppedTaskElement(targetSlot, taskText, isImportant, isRoutine);
-                    
-                    if (draggedTaskItem.classList.contains('draggable-task')) {
-                        selectedTasks = selectedTasks.filter(task => task !== taskText);
-                        updateImportantList();
-                    }
                 }
                 draggedTaskItem = null;
                 savePlanData();
@@ -1795,11 +1755,11 @@
             while (currentDay <= today) {
                 const dateKey = getDateKey(currentDay);
                 
-                labels.push(currentDay.toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' }));
-                
+                // ★ 2. 그래프 x축 라벨 수정 (YYYY.MM.DD)
                 const y = currentDay.getFullYear();
                 const m = String(currentDay.getMonth() + 1).padStart(2, '0');
                 const d = String(currentDay.getDate()).padStart(2, '0');
+                labels.push(`${y}.${m}.${d}`);
                 fullDateLabels.push(`${y}.${m}.${d}`);
 
                 if (weightMap.has(dateKey)) {
@@ -1902,6 +1862,5 @@
         initializeApp();
 
     </script>
-<script type="module" src="/index.tsx"></script>
 </body>
 </html>
