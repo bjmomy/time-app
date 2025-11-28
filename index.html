@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>시간 관리 앱 v9.4</title>
+    <title>시간 관리 앱 v9.1</title>
     
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     
@@ -22,75 +22,35 @@
         .app-container { display: flex; flex-direction: column; height: 100%; width: 100%; }
         .hidden { display: none !important; }
 
-        /* --- ★ 헤더 수정 (반응형 적용) --- */
+        /* --- 헤더 --- */
         #date-header {
-            flex-shrink: 0; 
-            padding: 8px; 
-            background-color: #ffffff;
-            border-bottom: 1px solid #e0e0e0; 
-            display: flex;
-            flex-wrap: wrap; /* 공간 부족시 줄바꿈 */
-            justify-content: space-between; 
-            align-items: center;
-            gap: 5px; /* 요소 간 간격 */
+            flex-shrink: 0; padding: 10px; background-color: #ffffff;
+            border-bottom: 1px solid #e0e0e0; display: flex;
+            justify-content: space-between; align-items: center;
         }
-        
-        /* 기본(모바일 세로): 날짜 컨트롤이 윗줄 전체 차지 */
-        #date-controls-left {
-            display: flex;
-            align-items: center;
-            justify-content: center; /* 가운데 정렬 */
-            width: 100%; /* 한 줄 다 차지 */
-            margin-bottom: 5px;
-        }
-
-        /* 나머지 컨트롤들 */
-        #center-controls, #search-controls-right {
+        #date-controls-left, #center-controls, #search-controls-right {
             display: flex;
             align-items: center;
         }
-        
-        /* 오른쪽 컨트롤 그룹: 공간 활용을 위해 flex-grow */
-        #search-controls-right {
-            flex-grow: 1;
-            justify-content: flex-end;
-        }
-
-        /* ★ 가로 모드 및 큰 화면 (600px 이상) 설정 */
-        @media (min-width: 600px) {
-            #date-header {
-                flex-wrap: nowrap; /* 한 줄로 표시 */
-            }
-            #date-controls-left {
-                width: auto; /* 내용만큼만 차지 */
-                justify-content: flex-start;
-                margin-bottom: 0;
-            }
-            #center-controls {
-                position: absolute; /* PC화면에서는 중앙 정렬 */
-                left: 50%;
-                transform: translateX(-50%);
-            }
-        }
-
         #date-header button {
             background: none; border: none; font-size: 20px; font-weight: bold;
-            color: #007aff; cursor: pointer; padding: 0 6px; /* 패딩 약간 축소 */
+            color: #007aff; cursor: pointer; padding: 0 10px;
         }
         #current-date {
-            min-width: 110px; text-align: center; font-size: 18px;
+            min-width: 120px; text-align: center; font-size: 18px;
             font-weight: 600; color: #333;
         }
         #calendar-btn, #memo-btn, #today-btn { 
-            font-size: 22px; padding: 0 4px; 
+            font-size: 24px; padding: 0 5px; 
         }
-        #playground-btn, #settings-btn { font-size: 22px; padding: 0 6px; }
-        
+        #center-controls button { font-size: 24px; padding: 0 8px; }
+        #search-controls-right { justify-content: flex-end; }
+        #playground-btn, #settings-btn { font-size: 24px; padding: 0 8px; }
         #search-input {
-            border: 1px solid #ccc; border-radius: 4px; padding: 6px;
-            font-size: 14px; max-width: 80px; /* 검색창 너비 조절 */
+            border: 1px solid #ccc; border-radius: 4px; padding: 6px 8px;
+            font-size: 14px; max-width: 100px;
         }
-        #search-btn { font-size: 20px; padding: 0 6px; }
+        #search-btn { font-size: 22px; padding: 0 8px; }
 
         /* --- 공통 패널 컨테이너 --- */
         .main-container {
@@ -99,7 +59,7 @@
         }
         .left-panel, .right-panel {
             flex: 1; padding: 10px; display: flex;
-            flex-direction: column; min-width: 0; overflow: hidden;
+            flex-direction: column; min-width: 0;
         }
         .left-panel { border-right: 1px solid #e0e0e0; }
         .single-panel-view {
@@ -119,7 +79,6 @@
             border-bottom: 2px solid #eee;
             padding-bottom: 4px;
             margin-bottom: 8px;
-            flex-shrink: 0;
         }
         .h3-wrapper h3 {
             margin-bottom: 0;
@@ -134,7 +93,9 @@
             color: #007aff;
             padding: 0;
         }
-        #apply-routine-btn.active { color: #FF9500; }
+        #apply-routine-btn.active {
+            color: #FF9500;
+        }
         #apply-routine-btn:hover { opacity: 0.7; }
 
         /* --- 메모 컨테이너 --- */
@@ -146,28 +107,26 @@
 
         /* --- 계획표: 할 일 섹션 --- */
         #todo-section { 
-            flex: 1; display: flex; flex-direction: column; 
-            min-height: 0; margin-bottom: 10px; 
+            flex: 1; 
+            display: flex; 
+            flex-direction: column; 
+            min-height: 120px; /* 최소 높이 설정 (헤더+입력창 확보) */
+            overflow: hidden; /* 내부 요소 넘침 방지 */
         }
-        .input-section { 
-            display: flex; margin-bottom: 10px; flex-shrink: 0; gap: 5px; 
-        }
+        .input-section { display: flex; margin-bottom: 10px; flex-shrink: 0; gap: 5px; }
         .input-section input[type="text"],
         .input-section input[type="number"] {
             flex-grow: 1; border: 1px solid #ccc; border-radius: 4px;
             padding: 8px 10px; font-size: 14px;
-            min-width: 0;
+            min-width: 0; /* flex container 내부 overflow 방지 */
         }
         .input-section button {
             background-color: #007aff; color: white; border: none; border-radius: 4px;
-            padding: 8px 12px; margin-left: 8px; cursor: pointer;
+            padding: 8px 12px; cursor: pointer;
             font-size: 16px; font-weight: bold;
             flex-shrink: 0;
         }
-        #todo-list { 
-            list-style: none; padding: 0; margin: 0; 
-            overflow-y: auto; flex-grow: 1; border-bottom: 1px solid #eee; 
-        }
+        #todo-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
         .task-item {
             padding: 8px 10px;
             border: none;
@@ -179,10 +138,17 @@
             align-items: center;
             transition: opacity 0.3s;
         }
-        .routine-item { background-color: #fdfdfd; }
-        .routine-item span::before { content: "📌 "; font-size: 12px; opacity: 0.6; }
+        .routine-item {
+            background-color: #fdfdfd;
+        }
+        .routine-item span::before {
+            content: "📌 ";
+            font-size: 12px;
+            opacity: 0.6;
+        }
         
-        .task-item span { flex-grow: 1; cursor: pointer; margin-right: 5px; outline: none; word-break: break-all; }
+        /* 수정 가능하도록 outline 제거 */
+        .task-item span { flex-grow: 1; cursor: pointer; margin-right: 5px; outline: none; }
         input[type="checkbox"] { margin-right: 8px; flex-shrink: 0; accent-color: #007aff; }
         .task-item.completed { opacity: 0.5; }
         .task-item.completed span { text-decoration: line-through; color: #888; }
@@ -196,8 +162,10 @@
 
         /* 계획표: '중요한 5가지' */
         #important-section {
-            padding-top: 10px; border-top: 2px dashed #ccc;
-            flex-shrink: 0; overflow-y: auto; max-height: 30%;
+            margin-top: 10px; padding-top: 10px; border-top: 1px dashed #ccc;
+            flex-shrink: 0; overflow-y: auto; max-height: 200px;
+            background-color: #fff; /* 배경색 추가하여 겹침 방지 */
+            position: relative; z-index: 1;
         }
         #important-list { min-height: 40px; }
         .draggable-task {
@@ -266,16 +234,30 @@
             background-color: #E3F2FD;
             border-color: #BBDEFB;
         }
+        
         .timeline-delete-btn {
-            background: none; border: none; color: #aaa;
-            font-size: 16px; font-weight: bold; line-height: 1;
-            cursor: pointer; padding: 0 0 0 5px;
-            opacity: 0; transition: opacity 0.2s; pointer-events: none;
+            background: none;
+            border: none;
+            color: #aaa;
+            font-size: 16px;
+            font-weight: bold;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0 0 0 5px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
         }
-        .dropped-task:hover .timeline-delete-btn { opacity: 1; pointer-events: auto; }
-        .timeline-delete-btn:hover { color: #ff3b30; }
+        .dropped-task:hover .timeline-delete-btn {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .timeline-delete-btn:hover {
+            color: #ff3b30;
+        }
 
-        /* --- 놀이터 스타일 --- */
+
+        /* --- 놀이터(Playground) 스타일 --- */
         #goal-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
         .goal-item {
             padding: 10px; border: 1px solid #eee; border-radius: 4px;
@@ -341,27 +323,54 @@
             word-wrap: break-word;
         }
 
-        /* --- 몸무게 기록 --- */
-        #weight-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
-        .weight-header {
-            display: flex; align-items: center; padding: 8px 5px;
-            background-color: #f0f0f0; font-weight: 600; color: #333;
-            border-radius: 4px; margin-top: 10px; margin-bottom: 5px; font-size: 13px; text-align: center;
+        /* --- 몸무게 기록 (시트 타입 스타일) --- */
+        #weight-sheet-wrapper {
+            flex-grow: 1; overflow-y: auto; border: 1px solid #e0e0e0;
+            border-radius: 4px; margin-top: 10px; background-color: #fff;
         }
-        .weight-item {
-            display: flex; align-items: center; padding: 10px 5px;
-            border-bottom: 1px solid #f0f0f0; font-size: 14px;
+        .sheet-table {
+            width: 100%; border-collapse: collapse; min-width: 300px;
         }
-        .w-date { flex: 0 0 90px; text-align: left; color: #555; padding-left: 5px; }
-        .w-weight { flex: 0 0 70px; text-align: center; color: #007aff; font-weight: 600; }
-        .w-alcohol { flex: 1; text-align: center; color: #ff3b30; font-weight: 500; }
-        .w-del { flex: 0 0 30px; text-align: right; padding-right: 5px; }
-
+        .sheet-table th, .sheet-table td {
+            border: 1px solid #ddd; padding: 0;
+            text-align: center; font-size: 14px; vertical-align: middle;
+        }
+        .sheet-table th {
+            padding: 10px 5px; background-color: #f8f8f8; color: #555;
+            font-weight: 600; position: sticky; top: 0; z-index: 10;
+        }
+        .sheet-table td {
+            height: 40px;
+        }
+        .sheet-table input {
+            width: 100%; height: 100%; border: none; text-align: center;
+            font-size: 14px; background: transparent; padding: 0 5px;
+            box-sizing: border-box; font-family: inherit;
+        }
+        .sheet-table input:focus {
+            background-color: #eef8ff; outline: 2px solid #007aff; outline-offset: -2px;
+        }
+        .sheet-table .date-cell {
+            background-color: #fdfdfd; color: #555; font-size: 13px;
+        }
+        .sheet-delete-btn {
+            background: none; border: none; color: #ccc; font-size: 20px;
+            cursor: pointer; width: 100%; height: 100%;
+        }
+        .sheet-delete-btn:hover { color: #ff3b30; background-color: #fff0f0; }
+        
         #import-weight-label {
-            display: inline-block; background-color: #8e8e93; color: white;
-            padding: 8px 12px; border-radius: 4px; cursor: pointer;
-            font-size: 14px; font-weight: 500; text-align: center;
-            width: 100%; box-sizing: border-box;
+            display: inline-block;
+            background-color: #8e8e93;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            text-align: center;
+            width: 100%;
+            box-sizing: border-box;
         }
         #import-weight-label:hover { opacity: 0.8; }
 
@@ -377,7 +386,7 @@
             bottom: -2px; left: 50%; transform: translateX(-50%); font-size: 16px;
         }
 
-        /* --- 공통 모달 --- */
+        /* --- 공통 모달 스타일 --- */
         .modal-overlay {
             position: fixed; z-index: 1000; left: 0; top: 0;
             width: 100%; height: 100%; background-color: rgba(0,0,0,0.4);
@@ -398,6 +407,7 @@
             cursor: pointer; background: none; border: none; padding: 0;
         }
         
+        /* --- 검색 모달 --- */
         #search-results-list { list-style: none; padding: 0; margin: 10px 0 0; overflow-y: auto; }
         .search-result-item {
             padding: 10px; border-bottom: 1px solid #f0f0f0; cursor: pointer;
@@ -406,30 +416,113 @@
         .search-result-item small { font-weight: 600; color: #007aff; display: block; }
         .search-result-item p { margin: 5px 0 0; color: #333; }
         
-        .modal-body { padding-top: 15px; overflow-y: auto; }
-        .modal-body label { display: block; font-weight: 600; font-size: 15px; margin-bottom: 8px; color: #333; }
+        /* --- 설정/루틴 모달 스타일 --- */
+        .modal-body {
+            padding-top: 15px;
+            overflow-y: auto;
+        }
+        .modal-body label {
+            display: block;
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 8px;
+            color: #333;
+        }
         .modal-body textarea {
-            width: 100%; height: 150px; box-sizing: border-box;
-            border: 1px solid #ccc; border-radius: 4px; padding: 8px;
-            font-size: 14px; font-family: inherit; resize: vertical; margin-bottom: 15px;
+            width: 100%;
+            height: 150px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+            margin-bottom: 15px;
         }
         .modal-body button {
-            background-color: #007aff; color: white; border: none;
-            border-radius: 5px; padding: 10px 15px; font-size: 16px;
-            font-weight: 600; cursor: pointer; margin-top: 10px;
-            width: 100%; box-sizing: border-box;
+            background-color: #007aff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 15px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+            width: 100%;
+            box-sizing: border-box;
         }
-        .modal-body button.secondary { background-color: #f0f0f0; color: #333; }
-        .modal-body button.danger { background-color: #ff3b30; }
-        .modal-body button:hover { opacity: 0.8; }
+        .modal-body button.secondary {
+            background-color: #f0f0f0;
+            color: #333;
+        }
+        .modal-body button.danger {
+            background-color: #ff3b30;
+        }
+        .modal-body button:hover {
+            opacity: 0.8;
+        }
         #import-data-label {
-            display: inline-block; background-color: #5856d6; color: white;
-            padding: 10px 15px; border-radius: 5px; cursor: pointer;
-            font-size: 16px; font-weight: 600; text-align: center;
-            margin-top: 10px; width: 100%; box-sizing: border-box;
+            display: inline-block;
+            background-color: #5856d6;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            text-align: center;
+            margin-top: 10px;
+            width: 100%;
+            box-sizing: border-box;
         }
         #import-data-label:hover { opacity: 0.8; }
-        
+
+        /* --- 반응형 (모바일 세로 모드) --- */
+        @media (max-width: 768px) {
+            /* 1. 메뉴판(헤더)이 잘리지 않고 모두 보이도록 수정 */
+            #date-header {
+                flex-wrap: wrap; /* 내용이 넘치면 줄바꿈 */
+                height: auto;
+                padding-bottom: 5px;
+            }
+            #date-controls-left {
+                width: 100%; 
+                justify-content: space-between; 
+                margin-bottom: 8px;
+            }
+            #center-controls {
+                flex: 1; 
+                justify-content: flex-start;
+            }
+            #search-controls-right {
+                flex: 1; 
+                justify-content: flex-end;
+            }
+            #current-date {
+                font-size: 16px; /* 모바일에서 날짜 폰트 조금 축소 */
+                min-width: auto;
+            }
+
+            /* 2. 입력창이 시간표란을 침범하지 않게: 좌우 배치를 상하 배치로 변경 */
+            .main-container {
+                flex-direction: column;
+            }
+            .left-panel, .right-panel {
+                border-right: none;
+                width: 100%;
+                flex: 1; 
+                min-height: 0; /* flex 자식 스크롤 문제 방지 */
+            }
+            .left-panel {
+                border-bottom: 1px solid #e0e0e0;
+                height: 50%; /* 화면 절반씩 차지 */
+            }
+            .right-panel {
+                height: 50%;
+            }
+        }
     </style>
 </head>
 <body>
@@ -518,23 +611,31 @@
         
         <div id="weight-container" class="main-container single-panel-view hidden">
             <h3>몸무게 기록</h3>
-            <div class="input-section" id="weight-input-section">
+            <div class="input-section">
                 <input type="number" id="new-weight-input" placeholder="오늘 몸무게 (kg)" step="0.1">
-                <input type="text" id="new-alcohol-input" placeholder="음주량">
+                <input type="text" id="new-alcohol-input" placeholder="음주량" style="flex-grow:0.5;">
                 <button id="add-weight-btn">+</button>
             </div>
             <div class="input-section" style="margin-top: 5px;">
                 <label for="import-weight-file" id="import-weight-label">과거 기록 (txt) 불러오기</label>
                 <input type="file" id="import-weight-file" accept=".txt" style="display: none;">
             </div>
-            <div class="weight-header">
-                <span class="w-date">날짜</span>
-                <span class="w-weight">몸무게</span>
-                <span class="w-alcohol">음주량</span>
-                <span class="w-del"></span>
+            
+            <div id="weight-sheet-wrapper">
+                <table class="sheet-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 25%;">날짜</th>
+                            <th style="width: 30%;">몸무게 (kg)</th>
+                            <th style="width: 30%;">음주량</th>
+                            <th style="width: 15%;">삭제</th>
+                        </tr>
+                    </thead>
+                    <tbody id="weight-table-body">
+                        <!-- JS가 채움 -->
+                    </tbody>
+                </table>
             </div>
-            <ul id="weight-list">
-            </ul>
         </div>
         
         <div id="graph-container" class="main-container single-panel-view hidden">
@@ -628,9 +729,11 @@
         const graphBtn = document.getElementById('graph-btn');
         const weightContainer = document.getElementById('weight-container');
         const newWeightInput = document.getElementById('new-weight-input');
-        const newAlcoholInput = document.getElementById('new-alcohol-input');
+        const newAlcoholInput = document.getElementById('new-alcohol-input'); 
         const addWeightBtn = document.getElementById('add-weight-btn');
-        const weightList = document.getElementById('weight-list');
+        // const weightList = document.getElementById('weight-list'); // 제거됨
+        const weightTableBody = document.getElementById('weight-table-body'); // 추가됨
+        
         const graphContainer = document.getElementById('graph-container');
         const graphRangeLabel = document.getElementById('graph-range-label');
         const weightChartCanvas = document.getElementById('weight-chart');
@@ -683,14 +786,11 @@
             if (viewToShow === 'playground-container') playgroundBtn.textContent = '📋';
             if (viewToShow === 'weight-container') {
                 weightBtn.style.color = '#FF9500';
-                newWeightInput.placeholder = `${getDateKey(currentDate)} 몸무게 (kg)`;
+                newWeightInput.placeholder = `${getDateKey(currentDate).replace(/-/g, '.')} 몸무게 (kg)`;
             }
             if (viewToShow === 'graph-container') graphBtn.style.color = '#FF9500';
             
-            // 루틴 버튼 표시 제어
-            const isToday = (getDateKey(currentDate) === getDateKey(new Date()));
-            // applyRoutineBtn.style.display = (viewToShow === 'plan-container' && isToday) ? 'block' : 'none'; // v8.2 방식 (오늘만)
-            applyRoutineBtn.style.display = (viewToShow === 'plan-container') ? 'block' : 'none'; // v8.3 방식 (항상)
+            applyRoutineBtn.style.display = (viewToShow === 'plan-container') ? 'block' : 'none';
         }
         memoBtn.addEventListener('click', () => {
             if (memoContainer.classList.contains('hidden')) showView('memo-container');
@@ -890,9 +990,7 @@
                         const timeSlot = timeline.querySelector(`[data-time="${time}"]`);
                         if (timeSlot) {
                             tasks.forEach(taskData => {
-                                const text = taskData.text;
-                                const isRoutine = finalTodoList.some(t => t.text === text && t.isRoutine);
-                                createDroppedTaskElement(timeSlot, text, taskData.isImportant, isRoutine); 
+                                createDroppedTaskElement(timeSlot, taskData.text, taskData.isImportant, false); 
                             });
                         }
                     }
@@ -914,31 +1012,6 @@
             } else {
                 applyRoutineBtn.classList.remove('active');
                 applyRoutineBtn.title = "매일 루틴 적용";
-            }
-        }
-        
-        function cleanupDuplicates() {
-             for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key.startsWith('plan_')) {
-                    try {
-                        const data = JSON.parse(localStorage.getItem(key));
-                        if (data && data.todos) {
-                            const seen = new Set();
-                            const uniqueTodos = data.todos.filter(todo => {
-                                const duplicate = seen.has(todo.text);
-                                seen.add(todo.text);
-                                return !duplicate;
-                            });
-                            
-                            if (uniqueTodos.length !== data.todos.length) {
-                                data.todos = uniqueTodos;
-                                localStorage.setItem(key, JSON.stringify(data));
-                            }
-                        }
-                    } catch (e) {
-                    }
-                }
             }
         }
 
@@ -978,7 +1051,7 @@
                 results.forEach(result => {
                     const li = document.createElement('li');
                     li.classList.add('search-result-item');
-                    li.innerHTML = `<small>${result.date}</small><p>${result.match}</p>`;
+                    li.innerHTML = `<small>${result.date.replace(/-/g, '.')}</small><p>${result.match}</p>`;
                     li.addEventListener('click', () => {
                         const newDate = new Date(result.date + 'T00:00:00');
                         changeDate(newDate);
@@ -1065,11 +1138,7 @@
             
             const timelineTasks = timeline.querySelectorAll('.dropped-task');
             timelineTasks.forEach(task => {
-                // ★ 2. (수정) 텍스트 비교 시 span 고려
-                let droppedText = task.textContent.replace('×', '').trim();
-                if (task.querySelector('span')) droppedText = task.querySelector('span').textContent;
-                
-                if (droppedText === taskText) {
+                if (task.childNodes[0].nodeValue === taskText) {
                     task.remove();
                 }
             });
@@ -1152,12 +1221,10 @@
                 savePlanData(); 
             });
 
+            if (isImportant) { taskItem.classList.add('is-important', 'selected'); }
             if (isChecked) {
                 checkbox.checked = true;
                 taskItem.classList.add('completed');
-            }
-            if (isImportant) { 
-                taskItem.classList.add('is-important', 'selected'); 
             }
             
             if (isNewEntry && isRoutine) {
@@ -1212,10 +1279,7 @@
             droppedTask.classList.toggle('is-important', isImportant);
             droppedTask.classList.toggle('is-general', !isImportant);
             
-            const textSpan = document.createElement('span');
-            textSpan.textContent = text;
-            textSpan.style.marginRight = '15px'; 
-            droppedTask.appendChild(textSpan);
+            droppedTask.appendChild(document.createTextNode(text));
 
             droppedTask.draggable = true;
             droppedTask.addEventListener('dragstart', (e) => {
@@ -1271,10 +1335,7 @@
                 targetSlot.classList.remove('drag-over');
                 if (!draggedTaskItem) return;
 
-                let taskText = draggedTaskItem.textContent.replace('×', '').trim();
-                if (draggedTaskItem.querySelector('span')) {
-                     taskText = draggedTaskItem.querySelector('span').textContent;
-                }
+                const taskText = draggedTaskItem.textContent.replace('×', '').trim();
 
                 if (draggedTaskItem.classList.contains('dropped-task')) {
                     draggedTaskItem.style.opacity = '1';
@@ -1296,6 +1357,11 @@
                     if (originalTaskItem) {
                         isImportant = originalTaskItem.classList.contains('is-important');
                         isRoutine = originalTaskItem.classList.contains('routine-item');
+                        
+                        originalTaskItem.classList.add('completed');
+                        const checkbox = originalTaskItem.querySelector('input[type="checkbox"]');
+                        if (checkbox) checkbox.checked = true;
+                        
                     } else if (draggedTaskItem.classList.contains('draggable-task')) {
                         isImportant = true;
                     }
@@ -1312,6 +1378,224 @@
             });
         }
 
+        // --- 놀이터, 몸무게 등 기존 기능 유지 ---
+        function savePlaygroundData() {
+            if (selectedGoalId) {
+                const goal = playgroundData.goals.find(g => g.id === selectedGoalId);
+                if (goal) { goal.progressNotes = goalProgressNotes.value; }
+            }
+            localStorage.setItem(PLAYGROUND_KEY, JSON.stringify(playgroundData));
+        }
+        function loadPlaygroundData() {
+            const data = JSON.parse(localStorage.getItem(PLAYGROUND_KEY));
+            if (data) { playgroundData = data; }
+            renderGoalList();
+            showGoalProgress(null);
+        }
+        function renderGoalList() {
+            goalList.innerHTML = '';
+            playgroundData.goals.forEach(goal => {
+                const li = document.createElement('li');
+                li.classList.add('goal-item');
+                li.dataset.id = goal.id;
+                li.classList.toggle('completed', goal.checked);
+                li.classList.toggle('selected', goal.id === selectedGoalId);
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = goal.checked;
+                checkbox.addEventListener('change', () => {
+                    goal.checked = checkbox.checked;
+                    li.classList.toggle('completed', goal.checked);
+                    savePlaygroundData();
+                });
+                const span = document.createElement('span');
+                span.textContent = goal.text;
+                span.contentEditable = "true";
+                span.addEventListener('blur', () => {
+                    goal.text = span.textContent;
+                    savePlaygroundData();
+                });
+                span.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') { e.preventDefault(); span.blur(); }
+                });
+                const deleteBtn = document.createElement('button');
+                deleteBtn.classList.add('delete-btn');
+                deleteBtn.innerHTML = '&times;';
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    playgroundData.goals = playgroundData.goals.filter(g => g.id !== goal.id);
+                    savePlaygroundData();
+                    renderGoalList();
+                    if (selectedGoalId === goal.id) { showGoalProgress(null); }
+                });
+                li.appendChild(checkbox);
+                li.appendChild(span);
+                li.appendChild(deleteBtn);
+                li.addEventListener('click', () => { showGoalProgress(goal.id); });
+                goalList.appendChild(li);
+            });
+        }
+        function addNewGoal() {
+            const text = newGoalInput.value.trim();
+            if (text === '') return;
+            const newGoal = {
+                id: crypto.randomUUID(), text: text, checked: false, progressNotes: "",
+                images: []
+            };
+            playgroundData.goals.push(newGoal);
+            savePlaygroundData();
+            renderGoalList();
+            newGoalInput.value = '';
+        }
+        function showGoalProgress(goalId) {
+            if (selectedGoalId) {
+                const oldGoal = playgroundData.goals.find(g => g.id === selectedGoalId);
+                if (oldGoal) { oldGoal.progressNotes = goalProgressNotes.value; }
+                const oldLi = goalList.querySelector(`[data-id="${selectedGoalId}"]`);
+                if (oldLi) oldLi.classList.remove('selected');
+            }
+            selectedGoalId = goalId;
+            if (goalId === null) {
+                goalProgressPlaceholder.classList.remove('hidden');
+                goalProgressContent.classList.add('hidden');
+            } else {
+                const goal = playgroundData.goals.find(g => g.id === goalId);
+                const li = goalList.querySelector(`[data-id="${goalId}"]`);
+                if (li) li.classList.add('selected');
+                goalProgressPlaceholder.classList.add('hidden');
+                goalProgressContent.classList.remove('hidden');
+                goalProgressNotes.value = goal.progressNotes;
+                renderGoalImages();
+            }
+        }
+        goalProgressNotes.addEventListener('input', savePlaygroundData);
+        goalProgressNotes.addEventListener('paste', (e) => {
+            if (!selectedGoalId) return;
+            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            for (const item of items) {
+                if (item.type.indexOf('image') === 0) {
+                    const file = item.getAsFile();
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        addImageToGoal(event.target.result);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+        });
+        function addImageToGoal(base64) {
+            if (!selectedGoalId) return;
+            const goal = playgroundData.goals.find(g => g.id === selectedGoalId);
+            goal.images.push({ src: base64, size: '100' });
+            savePlaygroundData();
+            renderGoalImages();
+        }
+        function renderGoalImages() {
+            goalProgressImages.innerHTML = '';
+            if (!selectedGoalId) return;
+            const goal = playgroundData.goals.find(g => g.id === selectedGoalId);
+            goal.images.forEach((imgData, index) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'image-wrapper';
+                const img = document.createElement('img');
+                img.src = imgData.src;
+                img.dataset.size = imgData.size;
+                img.title = "클릭하여 크기 조절 (100% > 75% > 50%)";
+                img.addEventListener('click', () => { cycleImageSize(index); });
+                const controls = document.createElement('div');
+                controls.className = 'image-controls';
+                const upBtn = document.createElement('button');
+                upBtn.innerHTML = '↑';
+                upBtn.title = '위로';
+                if (index === 0) upBtn.disabled = true;
+                upBtn.addEventListener('click', () => { moveImage(index, index - 1); });
+                const downBtn = document.createElement('button');
+                downBtn.innerHTML = '↓';
+                downBtn.title = '아래로';
+                if (index === goal.images.length - 1) downBtn.disabled = true;
+                downBtn.addEventListener('click', () => { moveImage(index, index + 1); });
+                const deleteBtn = document.createElement('button');
+                deleteBtn.innerHTML = '&times;';
+                deleteBtn.title = '삭제';
+                deleteBtn.addEventListener('click', () => { deleteImage(index); });
+                controls.appendChild(upBtn);
+                controls.appendChild(downBtn);
+                controls.appendChild(deleteBtn);
+                wrapper.appendChild(img);
+                wrapper.appendChild(controls);
+                goalProgressImages.appendChild(wrapper);
+            });
+        }
+        function moveImage(index1, index2) {
+            const goal = playgroundData.goals.find(g => g.id === selectedGoalId);
+            if (!goal) return;
+            [goal.images[index1], goal.images[index2]] = [goal.images[index2], goal.images[index1]];
+            savePlaygroundData();
+            renderGoalImages();
+        }
+        function deleteImage(index) {
+            const goal = playgroundData.goals.find(g => g.id === selectedGoalId);
+            if (!goal) return;
+            goal.images.splice(index, 1);
+            savePlaygroundData();
+            renderGoalImages();
+        }
+        function cycleImageSize(index) {
+            const goal = playgroundData.goals.find(g => g.id === selectedGoalId);
+            if (!goal) return;
+            const currentSize = goal.images[index].size;
+            let newSize = '100';
+            if (currentSize === '100') newSize = '75';
+            else if (currentSize === '75') newSize = '50';
+            else if (currentSize === '50') newSize = '100';
+            goal.images[index].size = newSize;
+            savePlaygroundData();
+            renderGoalImages();
+        }
+        goalImageUpload.addEventListener('change', (event) => {
+            if (!selectedGoalId) return;
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => { addImageToGoal(e.target.result); };
+            reader.readAsDataURL(file);
+            goalImageUpload.value = '';
+        });
+        exportGoalPdfBtn.addEventListener('click', () => {
+            if (!selectedGoalId) { alert("PDF로 내보낼 목표를 선택하세요."); return; }
+            savePlaygroundData();
+            const { jsPDF } = window.jspdf;
+            const content = document.getElementById('goal-progress-content');
+            const notesDiv = document.createElement('div');
+            notesDiv.className = 'pdf-render-div';
+            notesDiv.textContent = goalProgressNotes.value;
+            goalProgressContent.insertBefore(notesDiv, goalProgressNotes);
+            goalProgressNotes.classList.add('hidden');
+            html2canvas(content, { scale: 2, useCORS: true }).then(canvas => {
+                goalProgressContent.removeChild(notesDiv);
+                goalProgressNotes.classList.remove('hidden');
+                const imgData = canvas.toDataURL('image/png');
+                const doc = new jsPDF('p', 'mm', 'a4');
+                const imgProps = doc.getImageProperties(imgData);
+                const pdfWidth = doc.internal.pageSize.getWidth();
+                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                let heightLeft = pdfHeight;
+                let position = 0;
+                const pageHeight = doc.internal.pageSize.getHeight();
+                doc.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+                heightLeft -= pageHeight;
+                while (heightLeft > 0) {
+                    position = heightLeft - pdfHeight;
+                    doc.addPage();
+                    doc.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+                    heightLeft -= pageHeight;
+                }
+                const goal = playgroundData.goals.find(g => g.id === selectedGoalId);
+                const fileName = goal ? `goal_${goal.text.substring(0, 20)}.pdf` : 'goal-progress.pdf';
+                doc.save(fileName);
+            });
+        });
+
         function saveWeightData() {
             weightData.sort((a, b) => new Date(b.date) - new Date(a.date));
             localStorage.setItem(WEIGHT_KEY, JSON.stringify(weightData));
@@ -1320,46 +1604,84 @@
             const data = JSON.parse(localStorage.getItem(WEIGHT_KEY));
             if (data) { weightData = data; }
             renderWeightList();
-            newWeightInput.placeholder = `${getDateKey(currentDate)} 몸무게 (kg)`;
+            newWeightInput.placeholder = `${getDateKey(currentDate).replace(/-/g, '.')} 몸무게 (kg)`;
         }
+        
+        // --- ★ 몸무게 기록 시트 타입 렌더링 함수 ---
         function renderWeightList() {
-            weightList.innerHTML = '';
-            weightData.forEach((entry) => {
-                const li = document.createElement('li');
-                li.classList.add('weight-item');
-                const textWrapper = document.createElement('div');
-                const dateSpan = document.createElement('span');
-                dateSpan.textContent = `${entry.date} `;
-                dateSpan.className = 'w-date';
-                const weightSpan = document.createElement('span');
-                weightSpan.textContent = `${entry.weight} kg`;
-                weightSpan.className = 'w-weight';
-                const alcoholSpan = document.createElement('span');
-                alcoholSpan.className = 'w-alcohol';
-                if (entry.alcohol) alcoholSpan.textContent = `${entry.alcohol}`;
+            weightTableBody.innerHTML = '';
+            weightData.forEach((entry, index) => {
+                const tr = document.createElement('tr');
                 
-                textWrapper.style.display = 'contents'; // Grid layout support
-                
-                li.appendChild(dateSpan);
-                li.appendChild(weightSpan);
-                li.appendChild(alcoholSpan);
-                
-                const deleteBtn = document.createElement('button');
-                deleteBtn.classList.add('delete-btn');
-                deleteBtn.innerHTML = '&times;';
-                deleteBtn.setAttribute('aria-label', '삭제');
-                deleteBtn.addEventListener('click', () => {
-                    deleteWeightEntry(entry.date);
+                // 1. 날짜 셀 (수정 불가)
+                const tdDate = document.createElement('td');
+                tdDate.className = 'date-cell';
+                tdDate.textContent = entry.date.replace(/-/g, '.');
+                tr.appendChild(tdDate);
+
+                // 2. 몸무게 셀 (인풋)
+                const tdWeight = document.createElement('td');
+                const inputWeight = document.createElement('input');
+                inputWeight.type = 'number';
+                inputWeight.step = '0.1';
+                inputWeight.value = entry.weight;
+                inputWeight.addEventListener('change', (e) => updateWeightData(entry.date, 'weight', e.target.value));
+                inputWeight.addEventListener('blur', (e) => updateWeightData(entry.date, 'weight', e.target.value));
+                inputWeight.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') inputWeight.blur();
                 });
-                
-                const btnContainer = document.createElement('span');
-                btnContainer.className = 'w-del';
-                btnContainer.appendChild(deleteBtn);
-                li.appendChild(btnContainer);
-                
-                weightList.appendChild(li);
+                tdWeight.appendChild(inputWeight);
+                tr.appendChild(tdWeight);
+
+                // 3. 음주량 셀 (인풋)
+                const tdAlcohol = document.createElement('td');
+                const inputAlcohol = document.createElement('input');
+                inputAlcohol.type = 'text';
+                inputAlcohol.value = entry.alcohol || '';
+                inputAlcohol.addEventListener('change', (e) => updateWeightData(entry.date, 'alcohol', e.target.value));
+                inputAlcohol.addEventListener('blur', (e) => updateWeightData(entry.date, 'alcohol', e.target.value));
+                inputAlcohol.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') inputAlcohol.blur();
+                });
+                tdAlcohol.appendChild(inputAlcohol);
+                tr.appendChild(tdAlcohol);
+
+                // 4. 삭제 버튼
+                const tdDelete = document.createElement('td');
+                const btnDelete = document.createElement('button');
+                btnDelete.className = 'sheet-delete-btn';
+                btnDelete.innerHTML = '&times;';
+                btnDelete.title = '삭제';
+                btnDelete.addEventListener('click', () => deleteWeightEntry(entry.date));
+                tdDelete.appendChild(btnDelete);
+                tr.appendChild(tdDelete);
+
+                weightTableBody.appendChild(tr);
             });
         }
+        
+        // --- ★ 시트 데이터 업데이트 함수 ---
+        function updateWeightData(dateKey, field, value) {
+            const entryIndex = weightData.findIndex(e => e.date === dateKey);
+            if (entryIndex === -1) return;
+
+            let newValue = value;
+            if (field === 'weight') {
+                newValue = parseFloat(value);
+                if (!newValue || newValue <= 0) {
+                     // 유효하지 않은 값이면 원래 값으로 복구 (선택 사항)
+                     // 여기서는 UI 업데이트가 자동으로 되지 않으므로 renderWeightList 호출 추천
+                     return; 
+                }
+            } else if (field === 'alcohol') {
+                newValue = value.trim();
+            }
+
+            weightData[entryIndex][field] = newValue;
+            saveWeightData();
+            // renderWeightList(); // 포커스 잃음 방지를 위해 전체 리렌더링은 생략하고 데이터만 저장
+        }
+
         function addNewWeight() {
             const weight = parseFloat(newWeightInput.value);
             if (!weight || weight <= 0) {
@@ -1371,7 +1693,11 @@
             const newEntry = { date: dateKey, weight: weight, alcohol: alcohol };
             const existingIndex = weightData.findIndex(e => e.date === dateKey);
             if (existingIndex > -1) {
-                weightData[existingIndex] = newEntry;
+                if(confirm(`이미 ${dateKey} 데이터가 있습니다. 덮어쓰시겠습니까?`)) {
+                    weightData[existingIndex] = newEntry;
+                } else {
+                    return;
+                }
             } else {
                 weightData.push(newEntry);
             }
@@ -1379,10 +1705,10 @@
             renderWeightList();
             newWeightInput.value = '';
             newAlcoholInput.value = '';
-            newWeightInput.placeholder = `${dateKey} 몸무게 (kg)`;
-            alert("저장되었습니다."); 
+            newWeightInput.placeholder = `${dateKey.replace(/-/g, '.')} 몸무게 (kg)`;
         }
         function deleteWeightEntry(dateKey) {
+            if(!confirm("이 기록을 삭제하시겠습니까?")) return;
             weightData = weightData.filter(e => e.date !== dateKey);
             saveWeightData();
             renderWeightList();
@@ -1405,7 +1731,7 @@
 
                     const dateStr = parts[0];
                     const weight = parseFloat(parts[1]);
-                    const alcohol = parts.slice(2).join(' ');
+                    const alcohol = parts.slice(2).join(' '); // 나머지 뒷부분은 음주량
 
                     if (!weight || weight <= 0) return;
 
@@ -1467,11 +1793,16 @@
                 const dateKey = getDateKey(currentDay);
                 
                 labels.push(currentDay.toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' }));
-                fullDateLabels.push(currentDay.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }));
+                
+                const y = currentDay.getFullYear();
+                const m = String(currentDay.getMonth() + 1).padStart(2, '0');
+                const d = String(currentDay.getDate()).padStart(2, '0');
+                fullDateLabels.push(`${y}.${m}.${d}`);
 
                 if (weightMap.has(dateKey)) {
                     const entry = weightMap.get(dateKey);
                     dataPoints.push(entry.weight);
+                    // ★ 2. 음주 시 빨간색, 아니면 파란색
                     pointColors.push(entry.alcohol ? '#ff3b30' : '#007aff');
                 } else {
                     dataPoints.push(null);
@@ -1494,7 +1825,7 @@
                         fill: true,
                         tension: 0.1,
                         pointRadius: 4,
-                        pointBackgroundColor: pointColors,
+                        pointBackgroundColor: pointColors, // ★ 2. 개별 점 색상 적용
                         spanGaps: false
                     }]
                 },
@@ -1519,6 +1850,7 @@
             });
         }
 
+        // --- 달력 초기화 ---
         function initializeCalendar() {
             if (typeof flatpickr === 'undefined') {
                 console.error("Flatpickr 라이브러리가 로드되지 않았습니다.");
@@ -1540,8 +1872,8 @@
             });
         }
 
+        // --- 앱 초기화 ---
         function initializeApp() {
-            cleanupDuplicates();
             createTimeline();
             updateDateDisplay();
             initializeCalendar();
