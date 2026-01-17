@@ -545,6 +545,7 @@
             }
         }
     </style>
+<link rel="stylesheet" href="/index.css">
 </head>
 <body>
 
@@ -1071,15 +1072,76 @@
             searchResultsModal.classList.remove('hidden');
         }
 
+        // 일운(日運) 계산 함수
+        function getDayun(date) {
+            // 십간(十干): 甲乙丙丁戊己庚辛壬癸
+            const tenStems = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
+            // 십이지(十二支): 子丑寅卯辰巳午未申酉戌亥
+            const twelveBranches = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
+            
+            // 기준일: 2026년 1월 17일 = 신묘일 (辛卯日)
+            const baseDate = new Date(2026, 0, 17); // 월은 0-based
+            const baseStemIndex = 7; // 신(辛) = 7
+            const baseBranchIndex = 3; // 묘(卯) = 3
+            
+            // 날짜 차이 계산 (밀리초를 일 단위로 변환)
+            const diffTime = date.getTime() - baseDate.getTime();
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            
+            // 60갑자 순환 계산
+            const stemIndex = (baseStemIndex + diffDays + 1000) % 10; // 음수 방지
+            const branchIndex = (baseBranchIndex + diffDays + 1200) % 12; // 음수 방지
+            
+            return {
+                stem: tenStems[stemIndex],
+                branch: twelveBranches[branchIndex],
+                stemIndex: stemIndex,
+                branchIndex: branchIndex
+            };
+        }
+        
+        // 십간(천간)의 오행 색상 반환
+        function getStemColor(stemIndex) {
+            // 甲(0), 乙(1) - 木(목) - 초록
+            if (stemIndex === 0 || stemIndex === 1) return '#2e7d32';
+            // 丙(2), 丁(3) - 火(화) - 빨강
+            if (stemIndex === 2 || stemIndex === 3) return '#d32f2f';
+            // 戊(4), 己(5) - 土(토) - 노랑
+            if (stemIndex === 4 || stemIndex === 5) return '#ffc107';
+            // 庚(6), 辛(7) - 金(금) - 연한 회색
+            if (stemIndex === 6 || stemIndex === 7) return '#bdbdbd';
+            // 壬(8), 癸(9) - 水(수) - 검정
+            if (stemIndex === 8 || stemIndex === 9) return '#000000';
+            return '#333'; // 기본값
+        }
+        
+        // 십이지(지지)의 오행 색상 반환
+        function getBranchColor(branchIndex) {
+            // 子(0), 亥(11) - 水(수) - 검정
+            if (branchIndex === 0 || branchIndex === 11) return '#000000';
+            // 寅(2), 卯(3) - 木(목) - 초록
+            if (branchIndex === 2 || branchIndex === 3) return '#2e7d32';
+            // 巳(5), 午(6) - 火(화) - 빨강
+            if (branchIndex === 5 || branchIndex === 6) return '#d32f2f';
+            // 辰(4), 戌(10), 丑(1), 未(7) - 土(토) - 노랑
+            if (branchIndex === 4 || branchIndex === 10 || branchIndex === 1 || branchIndex === 7) return '#ffc107';
+            // 申(8), 酉(9) - 金(금) - 연한 회색
+            if (branchIndex === 8 || branchIndex === 9) return '#bdbdbd';
+            return '#333'; // 기본값
+        }
+        
         function formatDate(date) {
             const year = date.getFullYear();
             const month = String(date.getMonth() + 1).padStart(2, '0');
             const day = String(date.getDate()).padStart(2, '0');
             const week = ['일', '월', '화', '수', '목', '금', '토'][date.getDay()];
-            return `${year}.${month}.${day} (${week})`;
+            const dayun = getDayun(date);
+            const stemColor = getStemColor(dayun.stemIndex);
+            const branchColor = getBranchColor(dayun.branchIndex);
+            return `${year}.${month}.${day} (${week}) <span style="color: ${stemColor}; font-weight: 600;">${dayun.stem}</span><span style="color: ${branchColor}; font-weight: 600;">${dayun.branch}</span>`;
         }
         function updateDateDisplay() {
-            dateDisplay.textContent = formatDate(currentDate);
+            dateDisplay.innerHTML = formatDate(currentDate);
             if (calendarInstance) { calendarInstance.setDate(currentDate, false); }
         }
         function refreshCurrentViewData() {
@@ -1862,5 +1924,6 @@
         initializeApp();
 
     </script>
+<script type="module" src="/index.tsx"></script>
 </body>
 </html>
