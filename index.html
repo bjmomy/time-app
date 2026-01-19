@@ -106,6 +106,17 @@
             width: 100%; height: 100%; border: 1px solid #e0e0e0;
             border-radius: 4px; padding: 10px; font-size: 15px;
             font-family: inherit; box-sizing: border-box; resize: none;
+            white-space: pre-wrap; word-wrap: break-word;
+            overflow-y: auto;
+            outline: none;
+        }
+        #memo-textarea:empty:before {
+            content: attr(placeholder);
+            color: #999;
+        }
+        #memo-textarea:focus {
+            border-color: #007aff;
+            box-shadow: 0 0 0 2px rgba(0,122,255,0.2);
         }
 
         /* --- 계획표: 할 일 섹션 --- */
@@ -595,7 +606,7 @@
         </div>
         
         <div id="memo-container" class="main-container single-panel-view hidden">
-            <textarea id="memo-textarea" placeholder="이 날의 메모를 입력하세요..."></textarea>
+            <div id="memo-textarea" contenteditable="true" placeholder="이 날의 메모를 입력하세요..."></div>
         </div>
         
         <div id="playground-container" class="main-container hidden">
@@ -947,6 +958,34 @@
         }
         function getStorageKey(date) { return `plan_${getDateKey(date)}`; }
         
+        // 메모에서 날짜/일운 헤더 제거하고 실제 메모 내용만 반환
+        function getMemoContentWithoutHeader(htmlContent) {
+            if (!htmlContent) return '';
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = htmlContent;
+            const text = tempDiv.textContent || tempDiv.innerText || '';
+            const lines = text.split('\n');
+            // 첫 줄이 날짜 형식인지 확인 (YYYY-MM-DD 형식 포함)
+            if (lines.length > 0 && /^\d{4}-\d{2}-\d{2}/.test(lines[0].trim())) {
+                return lines.slice(1).join('\n').trim();
+            }
+            return text.trim();
+        }
+        
+        // 메모 내용에 날짜/일운 헤더 추가
+        function addMemoHeader(memoContent) {
+            const dateKey = getDateKey(currentDate);
+            const week = ['일', '월', '화', '수', '목', '금', '토'][currentDate.getDay()];
+            const dayun = getDayun(currentDate);
+            const stemColor = getStemColor(dayun.stemIndex);
+            const branchColor = getBranchColor(dayun.branchIndex);
+            const header = `${dateKey} (${week}) <span style="color: ${stemColor}; font-weight: 600;">${dayun.stem}</span><span style="color: ${branchColor}; font-weight: 600;">${dayun.branch}</span>`;
+            if (memoContent.trim() === '') {
+                return header;
+            }
+            return header + '\n' + memoContent;
+        }
+        
         function savePlanData() {
             const key = getStorageKey(currentDate);
             const todos = Array.from(todoList.children).map(item => ({
@@ -964,15 +1003,20 @@
                 }));
                 if (tasks.length > 0) timelineTasks[time] = tasks;
             });
-            const memoText = memoTextarea.value;
+            // 메모에서 헤더 제거하고 실제 내용만 저장
+            const memoHtml = memoTextarea.innerHTML;
+            const memoContent = getMemoContentWithoutHeader(memoHtml);
             // selectedTasks removed
-            const data = { todos, timelineTasks, memoText };
+            const data = { todos, timelineTasks, memoText: memoContent };
             
-            if (data.todos.length === 0 && Object.keys(timelineTasks).length === 0 && memoText.trim() === '') {
+            if (data.todos.length === 0 && Object.keys(timelineTasks).length === 0 && memoContent.trim() === '') {
                 localStorage.removeItem(key);
             } else {
                 localStorage.setItem(key, JSON.stringify(data));
             }
+            
+            // 메모에 헤더 다시 추가 (저장 후 즉시 표시)
+            memoTextarea.innerHTML = addMemoHeader(memoContent);
             
             if (calendarInstance) { calendarInstance.redraw(); }
         }
@@ -983,7 +1027,7 @@
             
             todoList.innerHTML = '';
             timeline.querySelectorAll('.dropped-task').forEach(task => task.remove());
-            memoTextarea.value = '';
+            memoTextarea.innerHTML = '';
             
             let finalTodoList = [];
             
@@ -1007,7 +1051,12 @@
                         }
                     }
                 }
-                if (data.memoText) { memoTextarea.value = data.memoText; }
+                // 메모 내용에 날짜/일운 헤더 추가
+                const memoContent = data.memoText || '';
+                memoTextarea.innerHTML = addMemoHeader(memoContent);
+            } else {
+                // 데이터가 없어도 헤더만 표시
+                memoTextarea.innerHTML = addMemoHeader('');
             }
             
             checkRoutineBtnState();
@@ -1193,7 +1242,8 @@
             }
         }
         
-        function deleteTaskGlobally(taskText) {
+        // 할일 목록에서만 삭제
+        function deleteTodoTask(taskText) {
             const originalTaskItem = Array.from(todoList.children).find(
                 item => item.querySelector('span').textContent === taskText
             );
@@ -1202,17 +1252,16 @@
                 alert("매일 루틴은 '설정 > 매일 루틴 설정'에서 수정하거나, 🔄 버튼으로 현재 날짜에서만 삭제할 수 있습니다.");
                 return;
             }
-
-            const timelineTasks = timeline.querySelectorAll('.dropped-task');
-            timelineTasks.forEach(task => {
-                if (task.childNodes[0].nodeValue === taskText) {
-                    task.remove();
-                }
-            });
             
             if (originalTaskItem) {
                 originalTaskItem.remove();
+                savePlanData();
             }
+        }
+        
+        // 시간표에서만 삭제
+        function deleteTimelineTask(taskElement) {
+            taskElement.remove();
             savePlanData();
         }
 
@@ -1245,6 +1294,25 @@
             taskSpan.textContent = taskText;
             taskSpan.contentEditable = "true";
             taskSpan.addEventListener('blur', () => {
+                const currentText = taskSpan.textContent.trim();
+                // 슬래시와 숫자 패턴 감지 (예: "골프연습/14")
+                const timeMatch = currentText.match(/^(.+)\/(\d{1,2})$/);
+                if (timeMatch) {
+                    const taskName = timeMatch[1].trim();
+                    const hour = parseInt(timeMatch[2], 10);
+                    
+                    // 시간 범위 체크 (6시~22시)
+                    if (hour >= 6 && hour <= 22) {
+                        const timeSlot = timeline.querySelector(`[data-time="${hour}:00"]`);
+                        if (timeSlot) {
+                            // 시간표에 추가
+                            const isImportant = taskItem.classList.contains('is-important');
+                            createDroppedTaskElement(timeSlot, taskName, isImportant, false);
+                            // 할일 텍스트에서 슬래시 부분 제거
+                            taskSpan.textContent = taskName;
+                        }
+                    }
+                }
                 savePlanData();
             });
             taskSpan.addEventListener('keypress', (e) => {
@@ -1282,7 +1350,7 @@
                 deleteBtn.style.display = 'none'; 
             } else {
                 deleteBtn.addEventListener('click', () => {
-                    deleteTaskGlobally(taskText);
+                    deleteTodoTask(taskText);
                 });
             }
 
@@ -1343,7 +1411,7 @@
             
             deleteBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                deleteTaskGlobally(text);
+                deleteTimelineTask(droppedTask);
             });
 
             droppedTask.appendChild(deleteBtn);
