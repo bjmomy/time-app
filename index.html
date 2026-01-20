@@ -959,31 +959,58 @@
         function getStorageKey(date) { return `plan_${getDateKey(date)}`; }
         
         // 메모에서 날짜/일운 헤더 제거하고 실제 메모 내용만 반환
-        function getMemoContentWithoutHeader(htmlContent) {
-            if (!htmlContent) return '';
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = htmlContent;
-            const text = tempDiv.textContent || tempDiv.innerText || '';
-            const lines = text.split('\n');
+        function getMemoContentWithoutHeader(textContent) {
+            if (!textContent) return '';
+            const lines = textContent.split('\n');
             // 첫 줄이 날짜 형식인지 확인 (YYYY-MM-DD 형식 포함)
             if (lines.length > 0 && /^\d{4}-\d{2}-\d{2}/.test(lines[0].trim())) {
                 return lines.slice(1).join('\n').trim();
             }
-            return text.trim();
+            return textContent.trim();
         }
         
-        // 메모 내용에 날짜/일운 헤더 추가
+        // 메모 내용에 날짜/일운 헤더 추가 (텍스트로)
         function addMemoHeader(memoContent) {
             const dateKey = getDateKey(currentDate);
             const week = ['일', '월', '화', '수', '목', '금', '토'][currentDate.getDay()];
             const dayun = getDayun(currentDate);
-            const stemColor = getStemColor(dayun.stemIndex);
-            const branchColor = getBranchColor(dayun.branchIndex);
-            const header = `${dateKey} (${week}) <span style="color: ${stemColor}; font-weight: 600;">${dayun.stem}</span><span style="color: ${branchColor}; font-weight: 600;">${dayun.branch}</span>`;
+            const header = `${dateKey} (${week}) ${dayun.stem}${dayun.branch}`;
             if (memoContent.trim() === '') {
-                return header;
+                return header + '\n';
             }
             return header + '\n' + memoContent;
+        }
+        
+        // 메모 영역에 커서를 날짜 아래칸에 위치시키기
+        function setMemoCursor() {
+            setTimeout(() => {
+                const textarea = memoTextarea;
+                const text = textarea.innerText || textarea.textContent || '';
+                const lines = text.split('\n');
+                if (lines.length > 0) {
+                    // 첫 줄(날짜 헤더) 다음 줄 시작 위치로 커서 이동
+                    const firstLineLength = lines[0].length;
+                    const range = document.createRange();
+                    const sel = window.getSelection();
+                    
+                    // 텍스트 노드 찾기
+                    let textNode = null;
+                    if (textarea.firstChild) {
+                        textNode = textarea.firstChild;
+                    } else {
+                        textNode = document.createTextNode('');
+                        textarea.appendChild(textNode);
+                    }
+                    
+                    // 첫 줄 다음 위치 (줄바꿈 포함)
+                    const cursorPos = Math.min(firstLineLength + 1, textNode.length);
+                    range.setStart(textNode, cursorPos);
+                    range.collapse(true);
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                    textarea.focus();
+                }
+            }, 10);
         }
         
         function savePlanData() {
@@ -1004,8 +1031,8 @@
                 if (tasks.length > 0) timelineTasks[time] = tasks;
             });
             // 메모에서 헤더 제거하고 실제 내용만 저장
-            const memoHtml = memoTextarea.innerHTML;
-            const memoContent = getMemoContentWithoutHeader(memoHtml);
+            const memoText = memoTextarea.innerText || memoTextarea.textContent || '';
+            const memoContent = getMemoContentWithoutHeader(memoText);
             // selectedTasks removed
             const data = { todos, timelineTasks, memoText: memoContent };
             
@@ -1016,7 +1043,8 @@
             }
             
             // 메모에 헤더 다시 추가 (저장 후 즉시 표시)
-            memoTextarea.innerHTML = addMemoHeader(memoContent);
+            memoTextarea.innerText = addMemoHeader(memoContent);
+            setMemoCursor();
             
             if (calendarInstance) { calendarInstance.redraw(); }
         }
@@ -1027,7 +1055,7 @@
             
             todoList.innerHTML = '';
             timeline.querySelectorAll('.dropped-task').forEach(task => task.remove());
-            memoTextarea.innerHTML = '';
+            memoTextarea.innerText = '';
             
             let finalTodoList = [];
             
@@ -1053,10 +1081,12 @@
                 }
                 // 메모 내용에 날짜/일운 헤더 추가
                 const memoContent = data.memoText || '';
-                memoTextarea.innerHTML = addMemoHeader(memoContent);
+                memoTextarea.innerText = addMemoHeader(memoContent);
+                setMemoCursor();
             } else {
                 // 데이터가 없어도 헤더만 표시
-                memoTextarea.innerHTML = addMemoHeader('');
+                memoTextarea.innerText = addMemoHeader('');
+                setMemoCursor();
             }
             
             checkRoutineBtnState();
@@ -1229,7 +1259,7 @@
 
         function createTimeline() {
             timeline.innerHTML = ''; 
-            for (let hour = 6; hour <= 22; hour++) {
+            for (let hour = 5; hour <= 23; hour++) {
                 const timeSlot = document.createElement('div');
                 timeSlot.classList.add('time-slot');
                 timeSlot.dataset.time = `${hour}:00`; 
@@ -1271,12 +1301,26 @@
         });
         
         function addNewTask(taskText = null, isChecked = false, isImportant = false, isRoutine = false, isNewEntry = false) {
+            let finalTaskText = taskText;
+            let timeToAdd = null; // 시간표에 추가할 시간
+            
             if (taskText === null) {
-                taskText = newTaskInput.value.trim();
-                if (taskText === '') return;
+                finalTaskText = newTaskInput.value.trim();
+                if (finalTaskText === '') return;
                 
+                // 입력 시 /시간 패턴 체크
+                const timeMatch = finalTaskText.match(/\/(\d{1,2})$/);
+                if (timeMatch) {
+                    const hour = parseInt(timeMatch[1], 10);
+                    if (hour >= 5 && hour <= 23) {
+                        timeToAdd = hour;
+                        finalTaskText = finalTaskText.substring(0, finalTaskText.lastIndexOf('/')).trim();
+                    }
+                }
+                
+                // 중복 체크는 최종 작업 이름으로 확인
                 const currentRoutines = JSON.parse(localStorage.getItem(ROUTINE_KEY) || '[]');
-                if (currentRoutines.includes(taskText) || Array.from(todoList.children).some(item => item.querySelector('span').textContent === taskText)) {
+                if (currentRoutines.includes(finalTaskText) || Array.from(todoList.children).some(item => item.querySelector('span').textContent === finalTaskText)) {
                     alert("이미 목록에 있는 항목입니다.");
                     newTaskInput.value = '';
                     return;
@@ -1291,38 +1335,98 @@
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
             const taskSpan = document.createElement('span');
-            taskSpan.textContent = taskText;
+            taskSpan.textContent = finalTaskText;
             taskSpan.contentEditable = "true";
-            taskSpan.addEventListener('blur', () => {
-                const currentText = taskSpan.textContent.trim();
-                // 슬래시와 숫자 패턴 감지 (예: "골프연습/14")
-                const timeMatch = currentText.match(/^(.+)\/(\d{1,2})$/);
+            
+            // 시간표 추가 로직을 별도 함수로 분리
+            let isProcessing = false; // 중복 실행 방지 플래그
+            const processTimeSlot = () => {
+                if (isProcessing) return; // 이미 처리 중이면 리턴
+                isProcessing = true;
+                
+                // contentEditable의 현재 텍스트를 가져옴
+                // 여러 방법으로 텍스트 가져오기 시도
+                let currentText = '';
+                if (taskSpan.textContent) {
+                    currentText = taskSpan.textContent.trim();
+                } else if (taskSpan.innerText) {
+                    currentText = taskSpan.innerText.trim();
+                } else {
+                    // Range API를 사용하여 텍스트 가져오기
+                    const range = document.createRange();
+                    range.selectNodeContents(taskSpan);
+                    currentText = range.toString().trim();
+                }
+                
+                // 슬래시와 숫자 패턴 감지 (예: "골프연습/14") - 끝에 슬래시와 숫자가 있는지 확인
+                const timeMatch = currentText.match(/\/(\d{1,2})$/);
                 if (timeMatch) {
-                    const taskName = timeMatch[1].trim();
-                    const hour = parseInt(timeMatch[2], 10);
+                    const hour = parseInt(timeMatch[1], 10);
+                    const taskName = currentText.substring(0, currentText.lastIndexOf('/')).trim();
                     
-                    // 시간 범위 체크 (6시~22시)
-                    if (hour >= 6 && hour <= 22) {
+                    // 시간 범위 체크 (5시~23시) 및 작업 이름이 있는지 확인
+                    if (hour >= 5 && hour <= 23 && taskName.length > 0) {
                         const timeSlot = timeline.querySelector(`[data-time="${hour}:00"]`);
                         if (timeSlot) {
-                            // 시간표에 추가
-                            const isImportant = taskItem.classList.contains('is-important');
-                            createDroppedTaskElement(timeSlot, taskName, isImportant, false);
+                            // 중복 체크: 같은 시간에 같은 이름의 작업이 이미 있는지 확인
+                            const existingTasks = timeSlot.querySelectorAll('.dropped-task');
+                            let alreadyExists = false;
+                            existingTasks.forEach(task => {
+                                if (task.childNodes[0].nodeValue === taskName) {
+                                    alreadyExists = true;
+                                }
+                            });
+                            
+                            if (!alreadyExists) {
+                                // 시간표에 추가
+                                const isImportant = taskItem.classList.contains('is-important');
+                                createDroppedTaskElement(timeSlot, taskName, isImportant, false);
+                            }
                             // 할일 텍스트에서 슬래시 부분 제거
                             taskSpan.textContent = taskName;
                         }
                     }
                 }
                 savePlanData();
+                isProcessing = false;
+            };
+            
+            // blur 이벤트에서 처리 (포커스를 잃을 때)
+            taskSpan.addEventListener('blur', () => {
+                setTimeout(processTimeSlot, 50); // DOM 업데이트 대기
             });
-            taskSpan.addEventListener('keypress', (e) => {
-                 if (e.key === 'Enter') { e.preventDefault(); taskSpan.blur(); }
+            
+            // Enter 키 처리
+            taskSpan.addEventListener('keydown', (e) => {
+                 if (e.key === 'Enter') { 
+                     e.preventDefault(); 
+                     // Enter 키를 눌렀을 때도 처리 (약간의 지연 후)
+                     setTimeout(processTimeSlot, 50);
+                 }
             });
 
-            // ★ 1. 클릭 시 중요 표시(빨강 굵게) 토글 복원
-            taskSpan.addEventListener('click', (e) => {
+            // 더블클릭 시 중요 표시(빨강 굵게) 토글
+            taskSpan.addEventListener('dblclick', (e) => {
+                 e.preventDefault();
                  taskItem.classList.toggle('is-important');
                  savePlanData();
+            });
+            
+            // 클릭 시 바로 편집 모드로 진입 (contentEditable이므로 자동으로 가능하지만 명시적으로 포커스)
+            taskSpan.addEventListener('click', (e) => {
+                 // 더블클릭과 구분하기 위해 약간의 지연
+                 setTimeout(() => {
+                     if (document.activeElement !== taskSpan) {
+                         taskSpan.focus();
+                         // 커서를 텍스트 끝으로 이동
+                         const range = document.createRange();
+                         range.selectNodeContents(taskSpan);
+                         range.collapse(false);
+                         const sel = window.getSelection();
+                         sel.removeAllRanges();
+                         sel.addRange(range);
+                     }
+                 }, 0);
             });
 
             const deleteBtn = document.createElement('button');
@@ -1338,7 +1442,7 @@
             taskItem.addEventListener('dragstart', (e) => {
                 draggedTaskItem = taskItem;
                 e.dataTransfer.effectAllowed = 'move';
-                e.dataTransfer.setData('text/plain', taskText);
+                e.dataTransfer.setData('text/plain', finalTaskText);
                 setTimeout(() => { taskItem.style.opacity = '0.5'; }, 0);
             });
             taskItem.addEventListener('dragend', () => {
@@ -1369,6 +1473,25 @@
                 todoList.prepend(taskItem);
             } else {
                 todoList.appendChild(taskItem);
+            }
+
+            // 입력 시 /시간 패턴이 있었으면 시간표에도 추가
+            if (timeToAdd !== null && isNewEntry) {
+                const timeSlot = timeline.querySelector(`[data-time="${timeToAdd}:00"]`);
+                if (timeSlot) {
+                    // 중복 체크: 같은 시간에 같은 이름의 작업이 이미 있는지 확인
+                    const existingTasks = timeSlot.querySelectorAll('.dropped-task');
+                    let alreadyExists = false;
+                    existingTasks.forEach(task => {
+                        if (task.childNodes[0].nodeValue === finalTaskText) {
+                            alreadyExists = true;
+                        }
+                    });
+                    
+                    if (!alreadyExists) {
+                        createDroppedTaskElement(timeSlot, finalTaskText, isImportant, false);
+                    }
+                }
             }
 
             if (isNewEntry) { savePlanData(); }
@@ -1402,6 +1525,15 @@
             droppedTask.addEventListener('dragleave', (e) => {
                 e.stopPropagation();
                 timeSlot.classList.remove('drag-over');
+            });
+            
+            // 더블클릭 시 중요 표시(빨강-검정) 토글
+            droppedTask.addEventListener('dblclick', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                droppedTask.classList.toggle('is-important');
+                droppedTask.classList.toggle('is-general');
+                savePlanData();
             });
             
             const deleteBtn = document.createElement('button');
