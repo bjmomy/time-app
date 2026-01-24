@@ -374,6 +374,80 @@
         }
         #weight-chart { max-width: 100%; }
 
+        /* --- 책 리스트 스타일 --- */
+        #book-list-wrapper {
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 10px;
+            background-color: #fff;
+        }
+        .book-category {
+            margin-bottom: 20px;
+        }
+        .book-category-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #007aff;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #007aff;
+        }
+        .book-item {
+            padding: 10px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            transition: background-color 0.2s;
+        }
+        .book-item:hover {
+            background-color: #f4f4f9;
+        }
+        .book-item:last-child {
+            border-bottom: none;
+        }
+        .book-item-number {
+            color: #888;
+            font-size: 12px;
+            margin-right: 10px;
+            min-width: 30px;
+        }
+        .book-item-title {
+            flex-grow: 1;
+            font-size: 15px;
+            color: #333;
+        }
+        .book-item-title.snu-book {
+            color: #007aff;
+            font-weight: 600;
+        }
+        .book-item.has-note::after {
+            content: "📝";
+            margin-left: 8px;
+            font-size: 14px;
+        }
+        .book-item.completed .book-item-title {
+            text-decoration: line-through;
+            opacity: 0.6;
+        }
+        .book-item.hidden {
+            display: none;
+        }
+        .book-item-delete {
+            background: none;
+            border: none;
+            color: #ff3b30;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 0 5px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .book-item:hover .book-item-delete {
+            opacity: 1;
+        }
+
         /* --- 달력 --- */
         .flatpickr-day.day-has-data::after {
             content: "•"; color: #f59e0b; position: absolute;
@@ -574,6 +648,7 @@
             <div id="center-controls">
                 <button id="weight-btn" aria-label="몸무게">⚖️</button>
                 <button id="graph-btn" aria-label="그래프">📈</button>
+                <button id="book-btn" aria-label="책">📚</button>
             </div>
             <div id="search-controls-right">
                 <button id="playground-btn" aria-label="놀이터">🏟️</button>
@@ -673,6 +748,21 @@
                 <canvas id="weight-chart"></canvas>
             </div>
         </div>
+        
+        <div id="book-container" class="main-container single-panel-view hidden">
+            <div class="h3-wrapper">
+                <h3>서울대 추천도서 100선</h3>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="search" id="book-search-input" placeholder="책 제목 또는 저자 검색..." style="border: 1px solid #ccc; border-radius: 4px; padding: 6px 10px; font-size: 14px; width: 250px;">
+                    <label for="import-book-file" id="import-book-label" style="display: inline-block; background-color: #34c759; color: white; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500;">엑셀 불러오기</label>
+                    <input type="file" id="import-book-file" accept=".csv,.xlsx,.xls" style="display: none;">
+                    <button id="export-book-btn" style="background-color: #007aff; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500;">엑셀 내보내기</button>
+                </div>
+            </div>
+            <div id="book-list-wrapper" style="flex-grow: 1; overflow-y: auto; margin-top: 10px;">
+                <ul id="book-list" style="list-style: none; padding: 0; margin: 0;"></ul>
+            </div>
+        </div>
 
     </div>
 
@@ -714,6 +804,22 @@
                 <label for="routine-input">매일 반복할 할 일 (한 줄에 하나씩)</label>
                 <textarea id="routine-input" placeholder="예: 물 1L 마시기"></textarea>
                 <button id="save-routine-btn">루틴 저장</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="book-note-modal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h4 id="book-note-title">독서노트</h4>
+                <button id="close-book-note-modal" class="modal-close-btn" aria-label="닫기">&times;</button>
+            </div>
+            <div class="modal-body">
+                <textarea id="book-note-textarea" placeholder="이 책에 대한 독서노트를 작성하세요..." style="height: 400px;"></textarea>
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button id="save-book-note-btn" style="flex: 1;">저장</button>
+                    <button id="print-book-note-btn" style="flex: 1; background-color: #34c759;">프린트</button>
+                </div>
             </div>
         </div>
     </div>
@@ -764,6 +870,17 @@
         const graphContainer = document.getElementById('graph-container');
         const graphRangeLabel = document.getElementById('graph-range-label');
         const weightChartCanvas = document.getElementById('weight-chart');
+        const bookBtn = document.getElementById('book-btn');
+        const bookContainer = document.getElementById('book-container');
+        const bookList = document.getElementById('book-list');
+        const bookNoteModal = document.getElementById('book-note-modal');
+        const bookNoteTitle = document.getElementById('book-note-title');
+        const bookNoteTextarea = document.getElementById('book-note-textarea');
+        const saveBookNoteBtn = document.getElementById('save-book-note-btn');
+        const closeBookNoteModal = document.getElementById('close-book-note-modal');
+        const importBookFile = document.getElementById('import-book-file');
+        const exportBookBtn = document.getElementById('export-book-btn');
+        const bookSearchInput = document.getElementById('book-search-input');
         
         const todayBtn = document.getElementById('today-btn');
         const settingsBtn = document.getElementById('settings-btn');
@@ -794,6 +911,15 @@
         let currentChartInstance = null;
         let currentView = 'plan-container';
         const ROUTINE_KEY = 'dailyRoutines';
+        const BOOK_LIST_KEY = 'bookList';
+        const BOOK_NOTES_KEY = 'bookNotes';
+        const BOOK_READ_STATUS_KEY = 'bookReadStatus';
+        const SNU_BOOKS_KEY = 'snuBooks';
+        let bookListData = [];
+        let bookNotes = {};
+        let bookReadStatus = {};
+        let snuBooks = new Set(); // 서울대 추천도서 목록
+        let currentBookId = null;
 
         // --- 뷰 전환 ---
         function showView(viewToShow) {
@@ -802,12 +928,14 @@
             playgroundContainer.classList.add('hidden');
             weightContainer.classList.add('hidden');
             graphContainer.classList.add('hidden');
+            bookContainer.classList.add('hidden');
             document.getElementById(viewToShow).classList.remove('hidden');
             currentView = viewToShow;
             memoBtn.textContent = '📝';
             playgroundBtn.textContent = '🏟️';
             weightBtn.style.color = '#007aff';
             graphBtn.style.color = '#007aff';
+            bookBtn.style.color = '#007aff';
             if (viewToShow === 'memo-container') memoBtn.textContent = '📋';
             if (viewToShow === 'playground-container') playgroundBtn.textContent = '📋';
             if (viewToShow === 'weight-container') {
@@ -815,6 +943,10 @@
                 newWeightInput.placeholder = `${getDateKey(currentDate).replace(/-/g, '.')} 몸무게 (kg)`;
             }
             if (viewToShow === 'graph-container') graphBtn.style.color = '#FF9500';
+            if (viewToShow === 'book-container') {
+                bookBtn.style.color = '#FF9500';
+                renderBookList();
+            }
             
             applyRoutineBtn.style.display = (viewToShow === 'plan-container') ? 'block' : 'none';
         }
@@ -839,6 +971,14 @@
             }
             renderWeightChart();
             showView('graph-container');
+        });
+        
+        bookBtn.addEventListener('click', () => {
+            if (bookContainer.classList.contains('hidden')) {
+                showView('book-container');
+            } else {
+                showView('plan-container');
+            }
         });
         
         // --- 기본 기능 ---
@@ -1251,6 +1391,9 @@
                     renderWeightChart();
                     break;
                 case 'playground-container':
+                    break;
+                case 'book-container':
+                    renderBookList();
                     break;
             }
         }
@@ -2110,6 +2253,542 @@
             });
         }
 
+        // --- 책 리스트 기능 ---
+        function getSnuBooksList() {
+            // 서울대 추천도서 100선 초기 데이터
+            return [
+                    { category: '외국문학', books: [
+                        '당시선', '홍루몽 | 조설근', '루쉰 전집 | 루쉰', '변신인형 | 왕멍', '마음 | 나쓰메 소세키',
+                        '설국 | 가와바타 야스나리', '일리아드, 오딧세이아 | 호메로스', '변신이야기 | 오비디우스',
+                        '그리스 비극 선집 | 소포클레스 외', '신곡 | 단테', '그리스로마신화',
+                        '세익스피어 (햄릿, 맥베스, 당신 뜻대로, 템페스트)', '위대한 유산 | 찰스 디킨스',
+                        '주홍글씨 | 호손', '젊은 예술가의 초상 | 제임스 조이스', '허클베리핀의 모험 | 마크 트웨인',
+                        '황무지 | 엘리엇', '보바리 부인 | 플로베르', '스완네 집 쪽으로 | 프루스트',
+                        '인간조건 | 말로', '파우스트 | 괴테', '마의 산 | 토마스 만', '변신 | 카프카',
+                        '양철북 | 그라스', '돈키호테 | 세르반테스', '백년동안의 고독 | 마르께스',
+                        '픽션들 | 보르헤스', '고도를 기다리며 | 베케트', '카라마조프가의 형제들 | 도스토예프스키',
+                        '안나 카레니나 | 톨스토이', '체호프 희곡선 | 체호프'
+                    ]},
+                    { category: '한국문학', books: [
+                        '고전시가선집', '연암산문선 | 박지원', '구운몽 | 김만중', '춘향전', '한중록 | 혜경궁 홍씨',
+                        '청구야담', '무정 | 이광수', '삼대 | 엽상섭', '천변풍경 | 박태원', '고향 | 이기영',
+                        '탁류 | 채만식', '인간문제 | 강경애', '정지용선집', '백석시전집',
+                        '카인의 후예 | 황순원', '토지 | 박경리', '광장 | 최인훈'
+                    ]},
+                    { category: '동양사상', books: [
+                        '삼국유사 | 일연', '보조법어 | 지눌', '퇴계문선 | 이황', '율곡문선 | 이이',
+                        '다산문선 | 정약용', '주역', '논어', '맹자', '대학 중용 증자 자사',
+                        '제자백가선도', '장자', '아함경', '사기열전 | 사마천', '우파니샤드'
+                    ]},
+                    { category: '서양사상', books: [
+                        '역사 | 헤로도토스', '의무론 | 키케로', '국가 | 플라톤', '니코마코스 윤리학 | 아리스토텔레스',
+                        '고백록 | 아우구스티누스', '군주론 | 니콜로 마키아벨리', '방법서설 | 르네 데카르트',
+                        '리바이어던 | 토마스 홉스', '정부론 | 존 로크', '법의 정신', '에밀 | 장 자크 루소',
+                        '국부론 | 아담 스미스', '페더랄리스트 페이퍼 | 알렉산더 해밀턴',
+                        '실천이성비판 | 임마누엘 칸트', '자유론 | 존 스튜어트 밀', '자본론 | 마르크스',
+                        '도덕계보학 | 니체', '꿈의 해석 | 지그문트 프로이트',
+                        '프로테스탄티즘의 윤리와 자본주의 정신 | 막스 베버', '감시와 처벌 | 미셸 푸코',
+                        '간디 자서전', '물질문명과 자본주의 | 페르낭 브로델', '홈스봅 4부작 | 에릭 혹스 봄',
+                        '슬픈 열대 | 레비스트로스', '문학과 예술의 사회사 | 아르놀드 하우저',
+                        '미디어의 이해 | 마샬 맥루한', '미국의 민주주의 | 알렉시스 토크빌'
+                    ]},
+                    { category: '과학기술', books: [
+                        '과학고전선집', '신기관 | 프란시스 베이컨', '종의 기원 | 찰스 다윈',
+                        '과학 혁명의 구조 | 토마스 쿤', '괴델, 에셔, 바흐 | 더글러스 호프스태터',
+                        '부분과 전체 | 하이젠베르크', '엔트로피 | 제레미 리프킨', '이기적 유전자 | 리처드 도킨스',
+                        '객관성의 칼날 | 찰스 길리스피', '같기도 하고, 아니 같기도 하고 | 로얼드 호프만',
+                        '카오스 | 제임스 글리크'
+                    ]}
+                ];
+        }
+        
+        function restoreSnuBooks() {
+            const snuBooksList = getSnuBooksList();
+            snuBooks.clear();
+            
+            // 서울대 추천도서 목록 저장
+            snuBooksList.forEach(categoryData => {
+                categoryData.books.forEach(bookTitle => {
+                    snuBooks.add(getBookId(categoryData.category, bookTitle));
+                });
+            });
+            localStorage.setItem(SNU_BOOKS_KEY, JSON.stringify(Array.from(snuBooks)));
+            
+            // 현재 bookListData에 서울대 추천도서가 누락되었는지 확인하고 복구
+            snuBooksList.forEach(snuCategory => {
+                const existingCategory = bookListData.find(c => c.category === snuCategory.category);
+                if (existingCategory) {
+                    // 기존 카테고리가 있으면 서울대 추천도서가 빠진 것만 추가
+                    snuCategory.books.forEach(snuBook => {
+                        if (!existingCategory.books.includes(snuBook)) {
+                            existingCategory.books.push(snuBook);
+                        }
+                    });
+                } else {
+                    // 카테고리 자체가 없으면 추가
+                    bookListData.push({ category: snuCategory.category, books: [...snuCategory.books] });
+                }
+            });
+            
+            saveBookList();
+        }
+        
+        function initializeBookList() {
+            const savedList = localStorage.getItem(BOOK_LIST_KEY);
+            if (savedList) {
+                bookListData = JSON.parse(savedList);
+            } else {
+                // 서울대 추천도서 100선 초기 데이터
+                const snuBooksList = getSnuBooksList();
+                bookListData = snuBooksList;
+                saveBookList();
+            }
+            
+            // 서울대 추천도서 목록 불러오기 및 복구
+            const savedSnuBooks = localStorage.getItem(SNU_BOOKS_KEY);
+            if (savedSnuBooks) {
+                snuBooks = new Set(JSON.parse(savedSnuBooks));
+            } else {
+                // 저장된 목록이 없으면 초기화
+                restoreSnuBooks();
+            }
+            
+            // 서울대 추천도서가 누락되었는지 확인하고 복구
+            const snuBooksList = getSnuBooksList();
+            let needsRestore = false;
+            snuBooksList.forEach(snuCategory => {
+                snuCategory.books.forEach(snuBook => {
+                    const bookId = getBookId(snuCategory.category, snuBook);
+                    if (!snuBooks.has(bookId)) {
+                        needsRestore = true;
+                    }
+                });
+            });
+            
+            if (needsRestore) {
+                restoreSnuBooks();
+            }
+            
+            const savedNotes = localStorage.getItem(BOOK_NOTES_KEY);
+            if (savedNotes) {
+                bookNotes = JSON.parse(savedNotes);
+            }
+            
+            const savedReadStatus = localStorage.getItem(BOOK_READ_STATUS_KEY);
+            if (savedReadStatus) {
+                bookReadStatus = JSON.parse(savedReadStatus);
+            }
+        }
+        
+        function saveBookList() {
+            localStorage.setItem(BOOK_LIST_KEY, JSON.stringify(bookListData));
+        }
+        
+        function saveBookNotes() {
+            localStorage.setItem(BOOK_NOTES_KEY, JSON.stringify(bookNotes));
+        }
+        
+        function saveBookReadStatus() {
+            localStorage.setItem(BOOK_READ_STATUS_KEY, JSON.stringify(bookReadStatus));
+        }
+        
+        function getBookId(category, bookTitle) {
+            return `${category}_${bookTitle}`;
+        }
+        
+        let currentBookSearchQuery = '';
+        
+        function renderBookList() {
+            bookList.innerHTML = '';
+            const searchQuery = currentBookSearchQuery.toLowerCase().trim();
+            
+            bookListData.forEach(categoryData => {
+                const categoryDiv = document.createElement('div');
+                categoryDiv.className = 'book-category';
+                
+                const categoryHeader = document.createElement('div');
+                categoryHeader.style.display = 'flex';
+                categoryHeader.style.justifyContent = 'space-between';
+                categoryHeader.style.alignItems = 'center';
+                categoryHeader.style.marginBottom = '10px';
+                
+                const categoryTitle = document.createElement('div');
+                categoryTitle.className = 'book-category-title';
+                categoryTitle.textContent = categoryData.category;
+                categoryTitle.style.marginBottom = '0';
+                categoryTitle.style.borderBottom = 'none';
+                categoryTitle.style.paddingBottom = '0';
+                
+                const addBookBtn = document.createElement('button');
+                addBookBtn.textContent = '+ 도서 추가';
+                addBookBtn.style.cssText = 'background-color: #34c759; color: white; border: none; border-radius: 4px; padding: 6px 12px; cursor: pointer; font-size: 12px; font-weight: 600;';
+                addBookBtn.addEventListener('click', () => {
+                    const categoryIndex = bookListData.findIndex(c => c.category === categoryData.category);
+                    bookListData[categoryIndex].books.push('');
+                    saveBookList();
+                    renderBookList();
+                    // 새로 추가된 항목에 포커스
+                    setTimeout(() => {
+                        const newItems = categoryDiv.querySelectorAll('.book-item-title');
+                        if (newItems.length > 0) {
+                            const lastItem = newItems[newItems.length - 1];
+                            lastItem.focus();
+                            const range = document.createRange();
+                            range.selectNodeContents(lastItem);
+                            range.collapse(false);
+                            const sel = window.getSelection();
+                            sel.removeAllRanges();
+                            sel.addRange(range);
+                        }
+                    }, 50);
+                });
+                
+                categoryHeader.appendChild(categoryTitle);
+                categoryHeader.appendChild(addBookBtn);
+                categoryDiv.appendChild(categoryHeader);
+                
+                categoryData.books.forEach((bookTitle, index) => {
+                    // 검색 필터링
+                    let shouldShow = true;
+                    if (searchQuery) {
+                        const titleLower = bookTitle.toLowerCase();
+                        // 제목 또는 저자 검색 (| 기호로 구분된 경우 저자 부분도 검색)
+                        const parts = bookTitle.split('|');
+                        const titlePart = parts[0].trim().toLowerCase();
+                        const authorPart = parts.length > 1 ? parts[1].trim().toLowerCase() : '';
+                        shouldShow = titleLower.includes(searchQuery) || 
+                                    titlePart.includes(searchQuery) || 
+                                    authorPart.includes(searchQuery);
+                    }
+                    
+                    const bookItem = document.createElement('div');
+                    bookItem.className = 'book-item';
+                    if (!shouldShow) {
+                        bookItem.classList.add('hidden');
+                    }
+                    const bookId = getBookId(categoryData.category, bookTitle);
+                    
+                    if (bookNotes[bookId]) {
+                        bookItem.classList.add('has-note');
+                    }
+                    
+                    if (bookReadStatus[bookId]) {
+                        bookItem.classList.add('completed');
+                    }
+                    
+                    // 체크박스
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.checked = bookReadStatus[bookId] || false;
+                    checkbox.style.marginRight = '8px';
+                    checkbox.style.accentColor = '#007aff';
+                    checkbox.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        bookReadStatus[bookId] = checkbox.checked;
+                        saveBookReadStatus();
+                        bookItem.classList.toggle('completed', checkbox.checked);
+                    });
+                    
+                    const numberSpan = document.createElement('span');
+                    numberSpan.className = 'book-item-number';
+                    numberSpan.textContent = `${index + 1}.`;
+                    
+                    const titleSpan = document.createElement('span');
+                    titleSpan.className = 'book-item-title';
+                    titleSpan.contentEditable = 'true';
+                    titleSpan.textContent = bookTitle;
+                    
+                    // 서울대 추천도서인지 확인
+                    if (snuBooks.has(bookId)) {
+                        titleSpan.classList.add('snu-book');
+                    }
+                    
+                    // 엔터 키 처리 (모든 도서에서 엔터 시 다음 항목으로 이동 또는 새 항목 추가)
+                    titleSpan.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const newTitle = titleSpan.textContent.trim();
+                            const categoryIndex = bookListData.findIndex(c => c.category === categoryData.category);
+                            
+                            // 현재 항목 업데이트
+                            if (newTitle && newTitle !== bookTitle) {
+                                bookListData[categoryIndex].books[index] = newTitle;
+                                saveBookList();
+                            }
+                            
+                            // 마지막 도서인 경우 새 항목 추가
+                            const isLastBook = index === categoryData.books.length - 1;
+                            if (isLastBook) {
+                                bookListData[categoryIndex].books.push('');
+                                saveBookList();
+                                renderBookList();
+                                // 새로 추가된 항목에 포커스
+                                setTimeout(() => {
+                                    const newItems = categoryDiv.querySelectorAll('.book-item-title');
+                                    if (newItems.length > 0) {
+                                        const lastItem = newItems[newItems.length - 1];
+                                        lastItem.focus();
+                                        const range = document.createRange();
+                                        range.selectNodeContents(lastItem);
+                                        range.collapse(false);
+                                        const sel = window.getSelection();
+                                        sel.removeAllRanges();
+                                        sel.addRange(range);
+                                    }
+                                }, 50);
+                            } else {
+                                // 다음 항목으로 포커스 이동
+                                titleSpan.blur();
+                                setTimeout(() => {
+                                    const nextItem = categoryDiv.querySelectorAll('.book-item-title')[index + 1];
+                                    if (nextItem) {
+                                        nextItem.focus();
+                                        const range = document.createRange();
+                                        range.selectNodeContents(nextItem);
+                                        range.collapse(false);
+                                        const sel = window.getSelection();
+                                        sel.removeAllRanges();
+                                        sel.addRange(range);
+                                    }
+                                }, 50);
+                            }
+                        }
+                    });
+                    
+                    titleSpan.addEventListener('blur', () => {
+                        const newTitle = titleSpan.textContent.trim();
+                        if (newTitle && newTitle !== bookTitle) {
+                            const categoryIndex = bookListData.findIndex(c => c.category === categoryData.category);
+                            const oldBookId = getBookId(categoryData.category, bookTitle);
+                            const newBookId = getBookId(categoryData.category, newTitle);
+                            
+                            // 노트와 읽기 상태 이전
+                            if (bookNotes[oldBookId]) {
+                                bookNotes[newBookId] = bookNotes[oldBookId];
+                                delete bookNotes[oldBookId];
+                                saveBookNotes();
+                            }
+                            if (bookReadStatus[oldBookId] !== undefined) {
+                                bookReadStatus[newBookId] = bookReadStatus[oldBookId];
+                                delete bookReadStatus[oldBookId];
+                                saveBookReadStatus();
+                            }
+                            
+                            bookListData[categoryIndex].books[index] = newTitle;
+                            saveBookList();
+                        } else if (!newTitle) {
+                            // 빈 제목이면 원래 제목으로 복구
+                            titleSpan.textContent = bookTitle;
+                        }
+                    });
+                    
+                    bookItem.appendChild(checkbox);
+                    bookItem.appendChild(numberSpan);
+                    bookItem.appendChild(titleSpan);
+                    
+                    // 서울대 추천도서는 삭제 버튼을 생성하지 않음
+                    const isSnuBook = snuBooks.has(bookId);
+                    if (!isSnuBook) {
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.className = 'book-item-delete';
+                        deleteBtn.innerHTML = '&times;';
+                        deleteBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            if (confirm(`"${bookTitle}"을(를) 리스트에서 삭제하시겠습니까?`)) {
+                                const categoryIndex = bookListData.findIndex(c => c.category === categoryData.category);
+                                bookListData[categoryIndex].books = bookListData[categoryIndex].books.filter(b => b !== bookTitle);
+                                // 노트와 읽기 상태도 삭제
+                                delete bookNotes[bookId];
+                                delete bookReadStatus[bookId];
+                                saveBookNotes();
+                                saveBookReadStatus();
+                                saveBookList();
+                                renderBookList();
+                            }
+                        });
+                        bookItem.appendChild(deleteBtn);
+                    }
+                    
+                    // 제목 더블클릭 시 독서노트 열기
+                    titleSpan.addEventListener('dblclick', (e) => {
+                        e.stopPropagation();
+                        openBookNote(categoryData.category, titleSpan.textContent.trim() || bookTitle);
+                    });
+                    
+                    categoryDiv.appendChild(bookItem);
+                });
+                
+                bookList.appendChild(categoryDiv);
+            });
+        }
+        
+        function openBookNote(category, bookTitle) {
+            currentBookId = getBookId(category, bookTitle);
+            bookNoteTitle.textContent = `${category} - ${bookTitle}`;
+            bookNoteTextarea.value = bookNotes[currentBookId] || '';
+            bookNoteModal.classList.remove('hidden');
+            setTimeout(() => bookNoteTextarea.focus(), 100);
+        }
+        
+        saveBookNoteBtn.addEventListener('click', () => {
+            if (!currentBookId) return;
+            bookNotes[currentBookId] = bookNoteTextarea.value;
+            saveBookNotes();
+            bookNoteModal.classList.add('hidden');
+            renderBookList();
+        });
+        
+        closeBookNoteModal.addEventListener('click', () => {
+            bookNoteModal.classList.add('hidden');
+        });
+        
+        const printBookNoteBtn = document.getElementById('print-book-note-btn');
+        printBookNoteBtn.addEventListener('click', () => {
+            if (!currentBookId) return;
+            const noteContent = bookNoteTextarea.value;
+            const bookTitle = bookNoteTitle.textContent;
+            
+            // 프린트용 HTML 생성
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>${bookTitle} - 독서노트</title>
+                    <style>
+                        body {
+                            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                            padding: 40px;
+                            max-width: 800px;
+                            margin: 0 auto;
+                            line-height: 1.6;
+                        }
+                        h1 {
+                            color: #007aff;
+                            border-bottom: 2px solid #007aff;
+                            padding-bottom: 10px;
+                            margin-bottom: 30px;
+                        }
+                        .note-content {
+                            white-space: pre-wrap;
+                            word-wrap: break-word;
+                            font-size: 14px;
+                            line-height: 1.8;
+                        }
+                        @media print {
+                            body { padding: 20px; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <h1>${bookTitle}</h1>
+                    <div class="note-content">${noteContent.replace(/\n/g, '<br>')}</div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+            setTimeout(() => {
+                printWindow.print();
+            }, 250);
+        });
+        
+        // 책 검색 기능
+        function performBookSearch() {
+            currentBookSearchQuery = bookSearchInput.value;
+            renderBookList();
+        }
+        
+        bookSearchInput.addEventListener('input', performBookSearch);
+        bookSearchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                performBookSearch();
+            }
+        });
+        
+        // 엑셀 내보내기
+        exportBookBtn.addEventListener('click', () => {
+            let csvContent = '카테고리,번호,책제목\n';
+            bookListData.forEach(categoryData => {
+                categoryData.books.forEach((bookTitle, index) => {
+                    csvContent += `"${categoryData.category}",${index + 1},"${bookTitle}"\n`;
+                });
+            });
+            
+            const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `서울대_추천도서_${getDateKey(new Date())}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+        
+        // 엑셀 불러오기
+        importBookFile.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const text = event.target.result;
+                    const lines = text.split('\n').filter(line => line.trim());
+                    
+                    // CSV 헤더 제거
+                    if (lines[0].includes('카테고리')) {
+                        lines.shift();
+                    }
+                    
+                    const newBookListData = [];
+                    const categoryMap = {};
+                    
+                    lines.forEach(line => {
+                        // CSV 파싱 (쉼표로 분리, 따옴표 처리)
+                        const matches = line.match(/(".*?"|[^,]+)(?=\s*,|\s*$)/g);
+                        if (!matches || matches.length < 3) return;
+                        
+                        const category = matches[0].replace(/^"|"$/g, '').trim();
+                        const bookTitle = matches[2].replace(/^"|"$/g, '').trim();
+                        
+                        if (!category || !bookTitle) return;
+                        
+                        if (!categoryMap[category]) {
+                            categoryMap[category] = [];
+                            newBookListData.push({ category, books: categoryMap[category] });
+                        }
+                        
+                        if (!categoryMap[category].includes(bookTitle)) {
+                            categoryMap[category].push(bookTitle);
+                        }
+                    });
+                    
+                    if (newBookListData.length === 0) {
+                        alert('올바른 형식의 CSV 파일이 아닙니다.');
+                        return;
+                    }
+                    
+                    if (confirm('기존 책 리스트를 불러온 파일로 교체하시겠습니까?')) {
+                        bookListData = newBookListData;
+                        saveBookList();
+                        renderBookList();
+                        alert('책 리스트를 불러왔습니다.');
+                    }
+                } catch (err) {
+                    alert('파일을 읽는 중 오류가 발생했습니다: ' + err.message);
+                }
+            };
+            
+            if (file.name.endsWith('.csv')) {
+                reader.readAsText(file, 'UTF-8');
+            } else {
+                alert('CSV 파일만 지원합니다. 엑셀 파일은 CSV 형식으로 저장한 후 불러오세요.');
+            }
+            
+            importBookFile.value = '';
+        });
+
         // --- 앱 초기화 ---
         function initializeApp() {
             createTimeline();
@@ -2129,9 +2808,12 @@
             
             importWeightFile.addEventListener('change', handleWeightFileImport);
             
+            initializeBookList();
+            
             searchResultsModal.classList.add('hidden');
             settingsModal.classList.add('hidden');
             routineModal.classList.add('hidden');
+            bookNoteModal.classList.add('hidden');
         }
 
         initializeApp();
