@@ -1032,8 +1032,10 @@
             checkRoutineBtnState(); 
         });
 
+        const BACKUP_SCHEMA_VERSION = 1;
         settingsBackupBtn.addEventListener('click', () => {
             const backupData = {
+                version: BACKUP_SCHEMA_VERSION,
                 plans: {},
                 playground: JSON.parse(localStorage.getItem(PLAYGROUND_KEY) || '{}'),
                 weight: JSON.parse(localStorage.getItem(WEIGHT_KEY) || '[]'),
@@ -1068,6 +1070,11 @@
             reader.onload = (event) => {
                 try {
                     const parsedData = JSON.parse(event.target.result);
+                    const version = parsedData.version ?? 0;
+                    if (version > BACKUP_SCHEMA_VERSION) {
+                        alert("이 백업 파일은 더 높은 버전으로 만들어졌습니다. 앱을 업데이트한 뒤 다시 시도해 주세요.");
+                        return;
+                    }
                     localStorage.clear();
                     localStorage.setItem(PLAYGROUND_KEY, JSON.stringify(parsedData.playground || {}));
                     localStorage.setItem(WEIGHT_KEY, JSON.stringify(parsedData.weight || []));
@@ -1129,6 +1136,15 @@
             return header + '\n' + memoContent;
         }
         
+        function getFirstTextNode(elm) {
+            if (!elm) return null;
+            if (elm.nodeType === Node.TEXT_NODE) return elm;
+            for (let i = 0; i < elm.childNodes.length; i++) {
+                const found = getFirstTextNode(elm.childNodes[i]);
+                if (found) return found;
+            }
+            return null;
+        }
         // 메모 영역에 커서를 날짜 아래칸(두 번째 줄)에 위치시키기
         function setMemoCursor() {
             setTimeout(() => {
@@ -1142,8 +1158,11 @@
                     const firstLineEnd = text.indexOf('\n');
                     const cursorPos = firstLineEnd >= 0 ? firstLineEnd + 1 : text.length;
                     
-                    // 텍스트 노드 찾기 (innerText로 넣었으므로 단일 텍스트 노드)
-                    const textNode = textarea.firstChild;
+                    // 텍스트 노드 찾기 (복붙/모바일 등으로 firstChild가 div/br일 수 있음)
+                    let textNode = textarea.firstChild;
+                    if (textNode && textNode.nodeType !== Node.TEXT_NODE) {
+                        textNode = getFirstTextNode(textarea);
+                    }
                     if (textNode && textNode.nodeType === Node.TEXT_NODE) {
                         range.setStart(textNode, Math.min(cursorPos, textNode.length));
                         range.collapse(true);
@@ -1746,6 +1765,14 @@
                     targetSlot.appendChild(draggedTaskItem);
                 }
                 else if (draggedTaskItem.classList.contains('task-item')) {
+                    // 동일 슬롯에 같은 텍스트 태스크가 이미 있으면 중복 추가 방지
+                    const existingInSlot = Array.from(targetSlot.querySelectorAll('.dropped-task'));
+                    const hasSameText = existingInSlot.some(t => (t.childNodes[0]?.nodeValue || '').trim() === taskText);
+                    if (hasSameText) {
+                        draggedTaskItem = null;
+                        savePlanData();
+                        return;
+                    }
                     let isImportant = false;
                     let isRoutine = false; 
                     let originalTaskItem = null;
