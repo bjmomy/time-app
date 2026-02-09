@@ -1037,7 +1037,11 @@
                 plans: {},
                 playground: JSON.parse(localStorage.getItem(PLAYGROUND_KEY) || '{}'),
                 weight: JSON.parse(localStorage.getItem(WEIGHT_KEY) || '[]'),
-                routines: JSON.parse(localStorage.getItem(ROUTINE_KEY) || '[]')
+                routines: JSON.parse(localStorage.getItem(ROUTINE_KEY) || '[]'),
+                bookList: JSON.parse(localStorage.getItem(BOOK_LIST_KEY) || '[]'),
+                bookNotes: JSON.parse(localStorage.getItem(BOOK_NOTES_KEY) || '{}'),
+                bookReadStatus: JSON.parse(localStorage.getItem(BOOK_READ_STATUS_KEY) || '{}'),
+                snuBooks: JSON.parse(localStorage.getItem(SNU_BOOKS_KEY) || '[]')
             };
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
@@ -1068,6 +1072,10 @@
                     localStorage.setItem(PLAYGROUND_KEY, JSON.stringify(parsedData.playground || {}));
                     localStorage.setItem(WEIGHT_KEY, JSON.stringify(parsedData.weight || []));
                     localStorage.setItem(ROUTINE_KEY, JSON.stringify(parsedData.routines || []));
+                    if (parsedData.bookList !== undefined) localStorage.setItem(BOOK_LIST_KEY, JSON.stringify(parsedData.bookList));
+                    if (parsedData.bookNotes !== undefined) localStorage.setItem(BOOK_NOTES_KEY, JSON.stringify(parsedData.bookNotes));
+                    if (parsedData.bookReadStatus !== undefined) localStorage.setItem(BOOK_READ_STATUS_KEY, JSON.stringify(parsedData.bookReadStatus));
+                    if (parsedData.snuBooks !== undefined) localStorage.setItem(SNU_BOOKS_KEY, JSON.stringify(parsedData.snuBooks));
                     if (parsedData.plans) {
                         for (const key in parsedData.plans) {
                             localStorage.setItem(key, JSON.stringify(parsedData.plans[key]));
@@ -1724,7 +1732,14 @@
                 targetSlot.classList.remove('drag-over');
                 if (!draggedTaskItem) return;
 
-                const taskText = draggedTaskItem.textContent.replace('×', '').trim();
+                // 할 일 텍스트: DOM 구조 기반 추출 (이름에 '×'가 들어가도 오작동 방지)
+                let taskText = '';
+                if (draggedTaskItem.classList.contains('dropped-task')) {
+                    taskText = (draggedTaskItem.childNodes[0]?.nodeValue || '').trim();
+                } else if (draggedTaskItem.classList.contains('task-item')) {
+                    taskText = (draggedTaskItem.querySelector('span')?.textContent || '').trim();
+                }
+                if (taskText === '') taskText = draggedTaskItem.textContent.replace(/\s*×\s*$/, '').trim();
 
                 if (draggedTaskItem.classList.contains('dropped-task')) {
                     draggedTaskItem.style.opacity = '1';
@@ -2325,8 +2340,9 @@
                         }
                     });
                 } else {
-                    // 카테고리 자체가 없으면 추가
-                    bookListData.push({ category: snuCategory.category, books: [...snuCategory.books] });
+                    // 카테고리 자체가 없으면 추가 (배열 복사 방어)
+                    const books = Array.isArray(snuCategory.books) ? [...snuCategory.books] : [];
+                    bookListData.push({ category: snuCategory.category, books });
                 }
             });
             
