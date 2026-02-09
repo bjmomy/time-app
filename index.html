@@ -1075,7 +1075,7 @@
                         alert("이 백업 파일은 더 높은 버전으로 만들어졌습니다. 앱을 업데이트한 뒤 다시 시도해 주세요.");
                         return;
                     }
-                    localStorage.clear();
+                    getAppStorageKeys().forEach(k => localStorage.removeItem(k));
                     localStorage.setItem(PLAYGROUND_KEY, JSON.stringify(parsedData.playground || {}));
                     localStorage.setItem(WEIGHT_KEY, JSON.stringify(parsedData.weight || []));
                     localStorage.setItem(ROUTINE_KEY, JSON.stringify(parsedData.routines || []));
@@ -1099,7 +1099,7 @@
         });
         settingsDeleteAllBtn.addEventListener('click', () => {
             if (!confirm("경고: 이 앱의 모든 데이터(계획, 목표, 몸무게)가 영구적으로 삭제됩니다. 정말 삭제하시겠습니까?")) return;
-            localStorage.clear();
+            getAppStorageKeys().forEach(k => localStorage.removeItem(k));
             alert("모든 데이터가 삭제되었습니다. 앱을 새로고침합니다.");
             location.reload();
         });
@@ -1112,6 +1112,15 @@
             return `${year}-${month}-${day}`;
         }
         function getStorageKey(date) { return `plan_${getDateKey(date)}`; }
+        /** 앱 전용 localStorage 키만 반환 (같은 도메인 다른 데이터 보호용) */
+        function getAppStorageKeys() {
+            const keys = [PLAYGROUND_KEY, WEIGHT_KEY, ROUTINE_KEY, BOOK_LIST_KEY, BOOK_NOTES_KEY, BOOK_READ_STATUS_KEY, SNU_BOOKS_KEY];
+            for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                if (k && k.startsWith('plan_')) keys.push(k);
+            }
+            return keys;
+        }
         
         // 메모에서 날짜/일운 헤더 제거하고 실제 메모 내용만 반환
         function getMemoContentWithoutHeader(textContent) {
@@ -1732,6 +1741,7 @@
             droppedTask.appendChild(deleteBtn);
             timeSlot.appendChild(droppedTask);
         }
+        // 드롭 리스너는 파일 전체에서 이 한 곳에만 정의 (중복 시 마지막 정의만 적용됨)
         function addDropListeners(timeSlot) {
             timeSlot.addEventListener('dragover', (e) => {
                 e.preventDefault();
@@ -2862,6 +2872,5 @@
         initializeApp();
 
     </script>
-<script type="module" src="/index.tsx"></script>
 </body>
 </html>
