@@ -721,7 +721,8 @@
             </div>
             <div class="input-section">
                 <input type="number" id="new-weight-input" placeholder="오늘 몸무게 (kg)" step="0.1">
-                <input type="text" id="new-alcohol-input" placeholder="음주량" style="flex-grow:0.5;">
+                <input type="number" id="new-alcohol-input" placeholder="음주(0~3)" min="0" max="3" style="width:70px;">
+                <input type="text" id="new-content-input" placeholder="내용" style="flex-grow:0.5;">
                 <button id="add-weight-btn">+</button>
             </div>
             
@@ -729,10 +730,11 @@
                 <table class="sheet-table">
                     <thead>
                         <tr>
-                            <th style="width: 25%;">날짜</th>
-                            <th style="width: 30%;">몸무게 (kg)</th>
-                            <th style="width: 30%;">음주량</th>
-                            <th style="width: 15%;">삭제</th>
+                            <th style="width: 18%;">날짜(요일)</th>
+                            <th style="width: 15%;">몸무게 (kg)</th>
+                            <th style="width: 10%;">음주량</th>
+                            <th style="width: 37%;">내용</th>
+                            <th style="width: 10%;">삭제</th>
                         </tr>
                     </thead>
                     <tbody id="weight-table-body">
@@ -868,7 +870,8 @@
         const graphBtn = document.getElementById('graph-btn');
         const weightContainer = document.getElementById('weight-container');
         const newWeightInput = document.getElementById('new-weight-input');
-        const newAlcoholInput = document.getElementById('new-alcohol-input'); 
+        const newAlcoholInput = document.getElementById('new-alcohol-input');
+        const newContentInput = document.getElementById('new-content-input');
         const addWeightBtn = document.getElementById('add-weight-btn');
         const weightTableBody = document.getElementById('weight-table-body'); 
         
@@ -2040,21 +2043,36 @@
         }
         function loadWeightData() {
             const data = JSON.parse(localStorage.getItem(WEIGHT_KEY));
-            if (data) { weightData = data; }
+            if (data) {
+                weightData = data.map(entry => {
+                    const alcoholVal = entry.alcohol;
+                    const isNumeric = typeof alcoholVal === 'number' && alcoholVal >= 0 && alcoholVal <= 3;
+                    return {
+                        date: entry.date,
+                        weight: entry.weight,
+                        alcohol: isNumeric ? alcoholVal : 0,
+                        content: entry.content ?? (isNumeric ? '' : (alcoholVal || ''))
+                    };
+                });
+            }
             renderWeightList();
             newWeightInput.placeholder = `${getDateKey(currentDate).replace(/-/g, '.')} 몸무게 (kg)`;
         }
 
+        function getDayOfWeek(dateStr) {
+            const d = new Date(dateStr + 'T12:00:00');
+            return ['일','월','화','수','목','금','토'][d.getDay()];
+        }
         // --- 몸무게 시트 렌더링 ---
         function renderWeightList() {
             weightTableBody.innerHTML = '';
             weightData.forEach((entry, index) => {
                 const tr = document.createElement('tr');
                 
-                // 1. 날짜 셀 (수정 불가)
+                // 1. 날짜(요일) 셀 (수정 불가)
                 const tdDate = document.createElement('td');
                 tdDate.className = 'date-cell';
-                tdDate.textContent = entry.date.replace(/-/g, '.');
+                tdDate.textContent = `${entry.date.replace(/-/g, '.')} (${getDayOfWeek(entry.date)})`;
                 tr.appendChild(tdDate);
 
                 // 2. 몸무게 셀 (인풋)
@@ -2071,11 +2089,13 @@
                 tdWeight.appendChild(inputWeight);
                 tr.appendChild(tdWeight);
 
-                // 3. 음주량 셀 (인풋)
+                // 3. 음주량 셀 (0~3 숫자)
                 const tdAlcohol = document.createElement('td');
                 const inputAlcohol = document.createElement('input');
-                inputAlcohol.type = 'text';
-                inputAlcohol.value = entry.alcohol || '';
+                inputAlcohol.type = 'number';
+                inputAlcohol.min = '0';
+                inputAlcohol.max = '3';
+                inputAlcohol.value = entry.alcohol ?? 0;
                 inputAlcohol.addEventListener('change', (e) => updateWeightData(entry.date, 'alcohol', e.target.value));
                 inputAlcohol.addEventListener('blur', (e) => updateWeightData(entry.date, 'alcohol', e.target.value));
                 inputAlcohol.addEventListener('keypress', (e) => {
@@ -2084,7 +2104,20 @@
                 tdAlcohol.appendChild(inputAlcohol);
                 tr.appendChild(tdAlcohol);
 
-                // 4. 삭제 버튼
+                // 4. 내용 셀 (인풋)
+                const tdContent = document.createElement('td');
+                const inputContent = document.createElement('input');
+                inputContent.type = 'text';
+                inputContent.value = entry.content || '';
+                inputContent.addEventListener('change', (e) => updateWeightData(entry.date, 'content', e.target.value));
+                inputContent.addEventListener('blur', (e) => updateWeightData(entry.date, 'content', e.target.value));
+                inputContent.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') inputContent.blur();
+                });
+                tdContent.appendChild(inputContent);
+                tr.appendChild(tdContent);
+
+                // 5. 삭제 버튼
                 const tdDelete = document.createElement('td');
                 const btnDelete = document.createElement('button');
                 btnDelete.className = 'sheet-delete-btn';
@@ -2106,13 +2139,12 @@
             let newValue = value;
             if (field === 'weight') {
                 newValue = parseFloat(value);
-                if (!newValue || newValue <= 0) {
-                     // 유효하지 않은 값이면 원래 값으로 복구 (선택 사항)
-                     // 여기서는 UI 업데이트가 자동으로 되지 않으므로 renderWeightList 호출 추천
-                     return; 
-                }
+                if (!newValue || newValue <= 0) return;
             } else if (field === 'alcohol') {
-                newValue = value.trim();
+                const n = parseInt(value, 10);
+                newValue = (n >= 0 && n <= 3) ? n : 0;
+            } else if (field === 'content') {
+                newValue = String(value || '').trim();
             }
 
             weightData[entryIndex][field] = newValue;
@@ -2126,9 +2158,11 @@
                 alert("올바른 몸무게를 입력하세요.");
                 return;
             }
-            const alcohol = newAlcoholInput.value.trim();
+            const alcoholRaw = parseInt(newAlcoholInput.value, 10);
+            const alcohol = (alcoholRaw >= 0 && alcoholRaw <= 3) ? alcoholRaw : 0;
+            const content = newContentInput.value.trim();
             const dateKey = getDateKey(currentDate);
-            const newEntry = { date: dateKey, weight: weight, alcohol: alcohol };
+            const newEntry = { date: dateKey, weight: weight, alcohol, content };
             const existingIndex = weightData.findIndex(e => e.date === dateKey);
             if (existingIndex > -1) {
                 if(confirm(`이미 ${dateKey} 데이터가 있습니다. 덮어쓰시겠습니까?`)) {
@@ -2143,6 +2177,7 @@
             renderWeightList();
             newWeightInput.value = '';
             newAlcoholInput.value = '';
+            newContentInput.value = '';
             newWeightInput.placeholder = `${dateKey.replace(/-/g, '.')} 몸무게 (kg)`;
         }
         function deleteWeightEntry(dateKey) {
@@ -2169,8 +2204,6 @@
 
                     const dateStr = parts[0];
                     const weight = parseFloat(parts[1]);
-                    const alcohol = parts.slice(2).join(' '); // 나머지 뒷부분은 음주량
-
                     if (!weight || weight <= 0) return;
 
                     const dateParts = dateStr.split(/[.-]/);
@@ -2180,16 +2213,27 @@
                     if (year.length !== 4 || month.length > 2 || day.length > 2) return;
 
                     const formattedDateKey = `${year.padStart(4, '20')}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-                    
                     if (!/^\d{4}-\d{2}-\d{2}$/.test(formattedDateKey)) return;
 
+                    let alcohol = 0;
+                    let content = '';
+                    if (parts.length >= 3) {
+                        const third = parseInt(parts[2], 10);
+                        if (third >= 0 && third <= 3) {
+                            alcohol = third;
+                            content = parts.slice(3).join(' ');
+                        } else {
+                            content = parts.slice(2).join(' ');
+                        }
+                    }
+
+                    const newEntry = { date: formattedDateKey, weight, alcohol, content };
                     const existingIndex = weightData.findIndex(e => e.date === formattedDateKey);
                     if (existingIndex > -1) {
-                        weightData[existingIndex].weight = weight;
-                        if (alcohol) weightData[existingIndex].alcohol = alcohol;
+                        weightData[existingIndex] = newEntry;
                         updatedCount++;
                     } else {
-                        weightData.push({ date: formattedDateKey, weight: weight, alcohol: alcohol });
+                        weightData.push(newEntry);
                         addedCount++;
                     }
                 });
@@ -2240,8 +2284,9 @@
                 if (weightMap.has(dateKey)) {
                     const entry = weightMap.get(dateKey);
                     dataPoints.push(entry.weight);
-                    // ★ 2. 음주 시 빨간색, 아니면 파란색
-                    pointColors.push(entry.alcohol ? '#ff3b30' : '#007aff');
+                    const alc = entry.alcohol ?? 0;
+                    const colors = ['transparent', '#ffffff', '#ffeb3b', '#ff3b30'];
+                    pointColors.push(colors[alc] ?? 'transparent');
                 } else {
                     dataPoints.push(null);
                     pointColors.push('#007aff');
@@ -2860,8 +2905,8 @@
             });
             loadWeightData();
             addWeightBtn.addEventListener('click', addNewWeight);
-            newWeightInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') addNewWeight();
+            [newWeightInput, newAlcoholInput, newContentInput].forEach(inp => {
+                inp.addEventListener('keypress', (e) => { if (e.key === 'Enter') addNewWeight(); });
             });
             
             importWeightFile.addEventListener('change', handleWeightFileImport);
