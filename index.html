@@ -48,7 +48,7 @@
         }
         #center-controls button { font-size: 24px; padding: 0 8px; }
         #search-controls-right { justify-content: flex-end; }
-        #playground-btn, #settings-btn { font-size: 24px; padding: 0 8px; }
+        #save-all-btn, #playground-btn, #settings-btn { font-size: 24px; padding: 0 8px; }
         #search-input {
             border: 1px solid #ccc; border-radius: 4px; padding: 6px 8px;
             font-size: 14px; max-width: 100px;
@@ -651,6 +651,7 @@
                 <button id="book-btn" aria-label="책">📚</button>
             </div>
             <div id="search-controls-right">
+                <button id="save-all-btn" aria-label="저장" title="모든 데이터 저장">💾</button>
                 <button id="playground-btn" aria-label="놀이터">🏟️</button>
                 <input type="search" id="search-input" placeholder="검색...">
                 <button id="search-btn" aria-label="검색">🔍</button>
@@ -891,6 +892,7 @@
         const bookSearchInput = document.getElementById('book-search-input');
         
         const todayBtn = document.getElementById('today-btn');
+        const saveAllBtn = document.getElementById('save-all-btn');
         const settingsBtn = document.getElementById('settings-btn');
         const settingsModal = document.getElementById('settings-modal');
         const closeSettingsModalBtn = document.getElementById('close-settings-modal');
@@ -991,6 +993,15 @@
         
         // --- 기본 기능 ---
         todayBtn.addEventListener('click', () => changeDate(new Date()));
+        saveAllBtn.addEventListener('click', () => {
+            savePlanData();
+            savePlaygroundData();
+            saveWeightData();
+            saveBookList();
+            saveBookNotes();
+            saveBookReadStatus();
+            alert('저장되었습니다.');
+        });
         settingsBtn.addEventListener('click', () => settingsModal.classList.remove('hidden'));
         closeSettingsModalBtn.addEventListener('click', () => settingsModal.classList.add('hidden'));
         settingsRoutineBtn.addEventListener('click', () => {
