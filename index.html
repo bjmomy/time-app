@@ -180,41 +180,46 @@
         #timeline-wrapper { flex-grow: 1; overflow-y: auto; }
         #timeline { position: relative; }
         .time-slot {
-            min-height: 45px;
+            min-height: 24px;
             height: auto;
-            border-bottom: 1px solid #e0e0e0;
+            border-bottom: 1px solid #e8e8e8;
             position: relative;
-            padding-left: 40px; 
+            padding-left: 42px; 
             box-sizing: border-box;
             display: flex;
             flex-direction: row;
             flex-wrap: wrap;
-            align-items: flex-start;
-            padding-top: 18px;
-            padding-bottom: 4px;
+            align-items: center;
+            padding-top: 2px;
+            padding-bottom: 2px;
         }
-        .time-label {
+        .time-slot.hour-start {
+            border-top: 2px solid #d0d0d0;
+            min-height: 26px;
+        }
+        .time-slot.hour-start:first-child { border-top: none; }
+        .time-slot .time-label {
             position: absolute;
-            left: 3px;
-            top: 5px;
-            font-size: 11px;
+            left: 2px;
+            top: 2px;
+            font-size: 10px;
             color: #888;
-            font-weight: bold;
+            font-weight: 600;
         }
+        .time-slot.hour-start .time-label { color: #555; font-size: 11px; }
         .time-slot.drag-over { background-color: #e0f7fa; }
         
         .dropped-task {
             display: inline-flex;
             align-items: center;
-            padding: 2px 5px;
-            font-size: 12px;
-            margin-top: 2px;
-            margin-right: 4px;
+            padding: 1px 4px;
+            font-size: 11px;
+            margin: 1px 3px 1px 0;
             font-weight: 500;
             cursor: grab;
             background-color: #E3F2FD;
             border: 1px solid #BBDEFB;
-            border-radius: 4px;
+            border-radius: 3px;
             line-height: 1.2;
         }
         .dropped-task:active { cursor: grabbing; }
@@ -1471,15 +1476,19 @@
         function createTimeline() {
             timeline.innerHTML = ''; 
             for (let hour = 5; hour <= 23; hour++) {
-                const timeSlot = document.createElement('div');
-                timeSlot.classList.add('time-slot');
-                timeSlot.dataset.time = `${hour}:00`; 
-                const timeLabel = document.createElement('span');
-                timeLabel.classList.add('time-label');
-                timeLabel.textContent = `${hour}:00`;
-                timeSlot.appendChild(timeLabel);
-                addDropListeners(timeSlot);
-                timeline.appendChild(timeSlot);
+                for (const half of ['00', '30']) {
+                    const timeStr = `${hour}:${half}`;
+                    const timeSlot = document.createElement('div');
+                    timeSlot.classList.add('time-slot');
+                    if (half === '00') timeSlot.classList.add('hour-start');
+                    timeSlot.dataset.time = timeStr; 
+                    const timeLabel = document.createElement('span');
+                    timeLabel.classList.add('time-label');
+                    timeLabel.textContent = timeStr;
+                    timeSlot.appendChild(timeLabel);
+                    addDropListeners(timeSlot);
+                    timeline.appendChild(timeSlot);
+                }
             }
         }
         
@@ -1519,13 +1528,37 @@
                 finalTaskText = newTaskInput.value.trim();
                 if (finalTaskText === '') return;
                 
-                // 입력 시 /시간 패턴 체크
-                const timeMatch = finalTaskText.match(/\/(\d{1,2})$/);
-                if (timeMatch) {
-                    const hour = parseInt(timeMatch[1], 10);
+                // 입력 시 /시간 패턴 체크: /시작-끝 또는 /단일시간 (30분 단위)
+                const rangeMatch = finalTaskText.match(/\/(\d{1,2})(?::\d{2})?-(\d{1,2})(?::\d{2})?$/);
+                const singleMatch = !rangeMatch && finalTaskText.match(/\/(\d{1,2})$/);
+                if (rangeMatch) {
+                    const startHour = parseInt(rangeMatch[1], 10);
+                    const endHour = parseInt(rangeMatch[2], 10);
+                    const stripped = finalTaskText.substring(0, finalTaskText.lastIndexOf('/')).trim();
+                    if (stripped.length === 0) {
+                        alert('시간 범위를 사용하려면 작업명을 입력해주세요. (예: 회의/9-18)');
+                        newTaskInput.value = '';
+                        return;
+                    }
+                    if (startHour >= 5 && endHour <= 23 && startHour <= endHour) {
+                        timeToAdd = [];
+                        for (let h = startHour; h <= endHour; h++) {
+                            timeToAdd.push(`${h}:00`);
+                            if (h < endHour) timeToAdd.push(`${h}:30`);
+                        }
+                        finalTaskText = stripped;
+                    }
+                } else if (singleMatch) {
+                    const hour = parseInt(singleMatch[1], 10);
+                    const stripped = finalTaskText.substring(0, finalTaskText.lastIndexOf('/')).trim();
+                    if (stripped.length === 0) {
+                        alert('시간을 사용하려면 작업명을 입력해주세요. (예: 회의/14)');
+                        newTaskInput.value = '';
+                        return;
+                    }
                     if (hour >= 5 && hour <= 23) {
-                        timeToAdd = hour;
-                        finalTaskText = finalTaskText.substring(0, finalTaskText.lastIndexOf('/')).trim();
+                        timeToAdd = [`${hour}:00`];
+                        finalTaskText = stripped;
                     }
                 }
                 
@@ -1569,33 +1602,39 @@
                     currentText = range.toString().trim();
                 }
                 
-                // 슬래시와 숫자 패턴 감지 (예: "골프연습/14") - 끝에 슬래시와 숫자가 있는지 확인
-                const timeMatch = currentText.match(/\/(\d{1,2})$/);
-                if (timeMatch) {
-                    const hour = parseInt(timeMatch[1], 10);
-                    const taskName = currentText.substring(0, currentText.lastIndexOf('/')).trim();
-                    
-                    // 시간 범위 체크 (5시~23시) 및 작업 이름이 있는지 확인
-                    if (hour >= 5 && hour <= 23 && taskName.length > 0) {
-                        const timeSlot = timeline.querySelector(`[data-time="${hour}:00"]`);
-                        if (timeSlot) {
-                            // 중복 체크: 같은 시간에 같은 이름의 작업이 이미 있는지 확인
-                            const existingTasks = timeSlot.querySelectorAll('.dropped-task');
-                            let alreadyExists = false;
-                            existingTasks.forEach(task => {
-                                if (task.childNodes[0].nodeValue === taskName) {
-                                    alreadyExists = true;
-                                }
-                            });
-                            
-                            if (!alreadyExists) {
-                                // 시간표에 추가
-                                const isImportant = taskItem.classList.contains('is-important');
-                                createDroppedTaskElement(timeSlot, taskName, isImportant, false);
-                            }
-                            // 할일 텍스트에서 슬래시 부분 제거
-                            taskSpan.textContent = taskName;
+                // 슬래시 패턴 감지: /시작-끝 (예: 골프연습/9-18) 또는 /단일시간 (예: 골프연습/14)
+                const rangeMatch = currentText.match(/\/(\d{1,2})(?::\d{2})?-(\d{1,2})(?::\d{2})?$/);
+                const singleMatch = !rangeMatch && currentText.match(/\/(\d{1,2})$/);
+                let timesToAdd = [];
+                if (rangeMatch) {
+                    const startHour = parseInt(rangeMatch[1], 10);
+                    const endHour = parseInt(rangeMatch[2], 10);
+                    if (startHour >= 5 && endHour <= 23 && startHour <= endHour) {
+                        for (let h = startHour; h <= endHour; h++) {
+                            timesToAdd.push(`${h}:00`);
+                            if (h < endHour) timesToAdd.push(`${h}:30`);
                         }
+                    }
+                } else if (singleMatch) {
+                    const hour = parseInt(singleMatch[1], 10);
+                    if (hour >= 5 && hour <= 23) timesToAdd = [`${hour}:00`];
+                }
+                if (timesToAdd.length > 0) {
+                    const taskName = currentText.substring(0, currentText.lastIndexOf('/')).trim();
+                    if (taskName.length > 0) {
+                        const isImportant = taskItem.classList.contains('is-important');
+                        timesToAdd.forEach(timeStr => {
+                            const timeSlot = timeline.querySelector(`[data-time="${timeStr}"]`);
+                            if (timeSlot) {
+                                const existingTasks = timeSlot.querySelectorAll('.dropped-task');
+                                let alreadyExists = false;
+                                existingTasks.forEach(task => {
+                                    if (task.childNodes[0].nodeValue === taskName) alreadyExists = true;
+                                });
+                                if (!alreadyExists) createDroppedTaskElement(timeSlot, taskName, isImportant, false);
+                            }
+                        });
+                        taskSpan.textContent = taskName;
                     }
                 }
                 savePlanData();
@@ -1687,22 +1726,18 @@
             }
 
             // 입력 시 /시간 패턴이 있었으면 시간표에도 추가
-            if (timeToAdd !== null && isNewEntry) {
-                const timeSlot = timeline.querySelector(`[data-time="${timeToAdd}:00"]`);
-                if (timeSlot) {
-                    // 중복 체크: 같은 시간에 같은 이름의 작업이 이미 있는지 확인
-                    const existingTasks = timeSlot.querySelectorAll('.dropped-task');
-                    let alreadyExists = false;
-                    existingTasks.forEach(task => {
-                        if (task.childNodes[0].nodeValue === finalTaskText) {
-                            alreadyExists = true;
-                        }
-                    });
-                    
-                    if (!alreadyExists) {
-                        createDroppedTaskElement(timeSlot, finalTaskText, isImportant, false);
+            if (timeToAdd !== null && timeToAdd.length > 0 && isNewEntry) {
+                timeToAdd.forEach(timeStr => {
+                    const timeSlot = timeline.querySelector(`[data-time="${timeStr}"]`);
+                    if (timeSlot) {
+                        const existingTasks = timeSlot.querySelectorAll('.dropped-task');
+                        let alreadyExists = false;
+                        existingTasks.forEach(task => {
+                            if (task.childNodes[0].nodeValue === finalTaskText) alreadyExists = true;
+                        });
+                        if (!alreadyExists) createDroppedTaskElement(timeSlot, finalTaskText, isImportant, false);
                     }
-                }
+                });
             }
 
             if (isNewEntry) { savePlanData(); }
