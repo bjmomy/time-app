@@ -834,8 +834,11 @@
 
 
     <script>
-        // (JS 라이브러리 로드 확인)
         window.jsPDF = window.jspdf.jsPDF;
+    </script>
+    <script type="module">
+        import KoreanLunarCalendar from 'https://cdn.jsdelivr.net/npm/korean-lunar-calendar@0.3.6/dist/esm/korean-lunar-calendar.js';
+        window.KoreanLunarCalendar = KoreanLunarCalendar;
 
         /* ─── 도메인 경계 (아래 순서로 구성) ───
          * HTML 요소 | 상태 변수 | 뷰 전환 | 기본 기능(설정/루틴/백업)
@@ -1085,10 +1088,93 @@
             URL.revokeObjectURL(url);
             settingsModal.classList.add('hidden');
         });
+        function mergePlanDayData(existing, imported) {
+            if (!imported || typeof imported !== 'object') {
+                return existing && typeof existing === 'object' ? existing : { todos: [], timelineTasks: {}, memoText: '' };
+            }
+            if (!existing || typeof existing !== 'object') return imported;
+            const byText = new Map();
+            (existing.todos || []).forEach(t => byText.set(t.text, { ...t }));
+            (imported.todos || []).forEach(t => {
+                if (!byText.has(t.text)) byText.set(t.text, { ...t });
+            });
+            const todos = Array.from(byText.values());
+            const timelineTasks = { ...(existing.timelineTasks || {}) };
+            for (const [time, tasks] of Object.entries(imported.timelineTasks || {})) {
+                const cur = timelineTasks[time] || [];
+                const byT = new Map(cur.map(t => [t.text, t]));
+                (tasks || []).forEach(t => {
+                    if (!byT.has(t.text)) byT.set(t.text, t);
+                });
+                const merged = Array.from(byT.values());
+                if (merged.length) timelineTasks[time] = merged;
+                else delete timelineTasks[time];
+            }
+            let memoText = existing.memoText || '';
+            const locMemo = memoText.trim();
+            const impMemo = (imported.memoText || '').trim();
+            if (!locMemo && impMemo) memoText = imported.memoText || '';
+            return { todos, timelineTasks, memoText };
+        }
+        function mergePlaygroundData(local, imported) {
+            const loc = local && Array.isArray(local.goals) ? local : { goals: [] };
+            const imp = imported && Array.isArray(imported.goals) ? imported : { goals: [] };
+            const byId = new Map(loc.goals.map(g => [g.id, g]));
+            imp.goals.forEach(g => {
+                if (g && g.id != null && !byId.has(g.id)) byId.set(g.id, g);
+            });
+            return { goals: Array.from(byId.values()) };
+        }
+        function mergeWeightData(localArr, importArr) {
+            const byDate = new Map((localArr || []).map(e => [e.date, { ...e }]));
+            (importArr || []).forEach(e => {
+                if (e && e.date && !byDate.has(e.date)) byDate.set(e.date, { ...e });
+            });
+            return Array.from(byDate.values()).sort((a, b) => new Date(b.date) - new Date(a.date));
+        }
+        function mergeRoutineLists(localArr, importArr) {
+            const seen = new Set(localArr || []);
+            const out = [...(localArr || [])];
+            (importArr || []).forEach(r => {
+                if (r != null && r !== '' && !seen.has(r)) {
+                    seen.add(r);
+                    out.push(r);
+                }
+            });
+            return out;
+        }
+        function mergeBookListData(local, imported) {
+            const out = JSON.parse(JSON.stringify(local || []));
+            (imported || []).forEach(impCat => {
+                if (!impCat || !impCat.category) return;
+                const idx = out.findIndex(c => c.category === impCat.category);
+                if (idx === -1) {
+                    out.push(JSON.parse(JSON.stringify(impCat)));
+                } else {
+                    const locBooks = out[idx].books || [];
+                    const seen = new Set(locBooks.filter(Boolean));
+                    (impCat.books || []).forEach(b => {
+                        if (b && !seen.has(b)) {
+                            locBooks.push(b);
+                            seen.add(b);
+                        }
+                    });
+                    out[idx].books = locBooks;
+                }
+            });
+            return out;
+        }
+        function mergeObjectPreferLocal(localObj, importObj) {
+            return { ...(importObj || {}), ...(localObj || {}) };
+        }
+        function mergeSnuBookIds(localArr, importArr) {
+            return [...new Set([...(localArr || []), ...(importArr || [])])];
+        }
+
         importDataLabel.addEventListener('click', () => importFileInput.click());
         importFileInput.addEventListener('change', (e) => {
             if (!e.target.files.length) return;
-            if (!confirm("경고: 현재 모든 데이터를 덮어쓰고 복구합니다. 계속하시겠습니까?")) return;
+            if (!confirm('백업을 기존 데이터와 병합합니다.\n· 날짜별 계획: 할 일·시간표는 같은 이름이 없을 때만 추가, 메모는 기존이 비어 있을 때만 채움\n· 몸무게·목표 등: 기기에 없는 항목만 추가, 겹치면 기기 데이터 유지\n계속하시겠습니까?')) return;
             const file = e.target.files[0];
             const reader = new FileReader();
             reader.onload = (event) => {
@@ -1099,20 +1185,47 @@
                         alert("이 백업 파일은 더 높은 버전으로 만들어졌습니다. 앱을 업데이트한 뒤 다시 시도해 주세요.");
                         return;
                     }
-                    getAppStorageKeys().forEach(k => localStorage.removeItem(k));
-                    localStorage.setItem(PLAYGROUND_KEY, JSON.stringify(parsedData.playground || {}));
-                    localStorage.setItem(WEIGHT_KEY, JSON.stringify(parsedData.weight || []));
-                    localStorage.setItem(ROUTINE_KEY, JSON.stringify(parsedData.routines || []));
-                    if (parsedData.bookList !== undefined) localStorage.setItem(BOOK_LIST_KEY, JSON.stringify(parsedData.bookList));
-                    if (parsedData.bookNotes !== undefined) localStorage.setItem(BOOK_NOTES_KEY, JSON.stringify(parsedData.bookNotes));
-                    if (parsedData.bookReadStatus !== undefined) localStorage.setItem(BOOK_READ_STATUS_KEY, JSON.stringify(parsedData.bookReadStatus));
-                    if (parsedData.snuBooks !== undefined) localStorage.setItem(SNU_BOOKS_KEY, JSON.stringify(parsedData.snuBooks));
-                    if (parsedData.plans) {
+                    let planAdded = 0;
+                    let planMerged = 0;
+                    if (parsedData.plans && typeof parsedData.plans === 'object') {
                         for (const key in parsedData.plans) {
-                            localStorage.setItem(key, JSON.stringify(parsedData.plans[key]));
+                            if (!key.startsWith('plan_')) continue;
+                            const had = !!localStorage.getItem(key);
+                            const existing = had ? JSON.parse(localStorage.getItem(key)) : null;
+                            const merged = mergePlanDayData(existing, parsedData.plans[key]);
+                            localStorage.setItem(key, JSON.stringify(merged));
+                            if (had) planMerged++;
+                            else planAdded++;
                         }
                     }
-                    alert("데이터를 성공적으로 불러왔습니다. 앱을 새로고침합니다.");
+                    const locPg = JSON.parse(localStorage.getItem(PLAYGROUND_KEY) || '{}');
+                    localStorage.setItem(PLAYGROUND_KEY, JSON.stringify(mergePlaygroundData(locPg, parsedData.playground || {})));
+                    const locW = JSON.parse(localStorage.getItem(WEIGHT_KEY) || '[]');
+                    localStorage.setItem(WEIGHT_KEY, JSON.stringify(mergeWeightData(locW, parsedData.weight || [])));
+                    const locR = JSON.parse(localStorage.getItem(ROUTINE_KEY) || '[]');
+                    localStorage.setItem(ROUTINE_KEY, JSON.stringify(mergeRoutineLists(locR, parsedData.routines || [])));
+                    if (parsedData.bookList !== undefined) {
+                        const locB = JSON.parse(localStorage.getItem(BOOK_LIST_KEY) || '[]');
+                        localStorage.setItem(BOOK_LIST_KEY, JSON.stringify(mergeBookListData(locB, parsedData.bookList)));
+                    }
+                    if (parsedData.bookNotes !== undefined) {
+                        const loc = JSON.parse(localStorage.getItem(BOOK_NOTES_KEY) || '{}');
+                        localStorage.setItem(BOOK_NOTES_KEY, JSON.stringify(mergeObjectPreferLocal(loc, parsedData.bookNotes)));
+                    }
+                    if (parsedData.bookReadStatus !== undefined) {
+                        const loc = JSON.parse(localStorage.getItem(BOOK_READ_STATUS_KEY) || '{}');
+                        localStorage.setItem(BOOK_READ_STATUS_KEY, JSON.stringify(mergeObjectPreferLocal(loc, parsedData.bookReadStatus)));
+                    }
+                    if (parsedData.snuBooks !== undefined) {
+                        const loc = JSON.parse(localStorage.getItem(SNU_BOOKS_KEY) || '[]');
+                        localStorage.setItem(SNU_BOOKS_KEY, JSON.stringify(mergeSnuBookIds(loc, parsedData.snuBooks)));
+                    }
+                    const parts = [];
+                    if (planAdded || planMerged) {
+                        parts.push(`날짜별 계획: 새 날짜 ${planAdded}건, 기존 날짜에 항목 병합 ${planMerged}건`);
+                    }
+                    parts.push('기타(놀이터·몸무게·루틴·책 등)는 규칙에 따라 병합되었습니다.');
+                    alert(`병합이 완료되었습니다.\n${parts.join('\n')}\n앱을 새로고침합니다.`);
                     location.reload();
                 } catch (err) {
                     alert("오류: 잘못된 백업 파일입니다.");
@@ -1120,6 +1233,7 @@
             };
             reader.readAsText(file);
             settingsModal.classList.add('hidden');
+            importFileInput.value = '';
         });
         settingsDeleteAllBtn.addEventListener('click', () => {
             if (!confirm("경고: 이 앱의 모든 데이터(계획, 목표, 몸무게)가 영구적으로 삭제됩니다. 정말 삭제하시겠습니까?")) return;
@@ -1162,7 +1276,9 @@
             const dateKey = getDateKey(currentDate);
             const week = ['일', '월', '화', '수', '목', '금', '토'][currentDate.getDay()];
             const dayun = getDayun(currentDate);
-            const header = `${dateKey} (${week}) ${dayun.stem}${dayun.branch}`;
+            const lunarStr = formatLunarShort(currentDate);
+            const lunarPart = lunarStr ? `(${lunarStr})` : '';
+            const header = `${dateKey} (${week}) ${dayun.stem}${dayun.branch}${lunarPart}`;
             if (memoContent.trim() === '') {
                 return header + '\n';
             }
@@ -1391,6 +1507,22 @@
                 branchIndex: branchIndex
             };
         }
+
+        /** 음력 월·일을 간지 옆 표기용 문자열로 (예: -2.9 = 윤2월 9일, 2.9 = 2월 9일) */
+        function formatLunarShort(date) {
+            const Cal = window.KoreanLunarCalendar;
+            if (!Cal) return '';
+            try {
+                const cal = new Cal();
+                if (!cal.setSolarDate(date.getFullYear(), date.getMonth() + 1, date.getDate())) return '';
+                const l = cal.getLunarCalendar();
+                if (!l) return '';
+                const prefix = l.intercalation ? '-' : '';
+                return `${prefix}${l.month}.${l.day}`;
+            } catch (e) {
+                return '';
+            }
+        }
         
         // 십간(천간)의 오행 색상 반환
         function getStemColor(stemIndex) {
@@ -1430,7 +1562,9 @@
             const dayun = getDayun(date);
             const stemColor = getStemColor(dayun.stemIndex);
             const branchColor = getBranchColor(dayun.branchIndex);
-            return `${year}.${month}.${day} (${week}) <span style="color: ${stemColor}; font-weight: 600;">${dayun.stem}</span><span style="color: ${branchColor}; font-weight: 600;">${dayun.branch}</span>`;
+            const lunarStr = formatLunarShort(date);
+            const lunarHtml = lunarStr ? ` <span style="color: #666; font-weight: 500; font-size: 0.95em;">(${lunarStr})</span>` : '';
+            return `${year}.${month}.${day} (${week}) <span style="color: ${stemColor}; font-weight: 600;">${dayun.stem}</span><span style="color: ${branchColor}; font-weight: 600;">${dayun.branch}</span>${lunarHtml}`;
         }
         function updateDateDisplay() {
             dateDisplay.innerHTML = formatDate(currentDate);
